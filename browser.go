@@ -130,9 +130,13 @@ func launchBrowser(parentCtx context.Context, cfg *Config, browserPath string, l
 	allocOpts = append(allocOpts,
 		chromedp.ExecPath(browserPath),
 		chromedp.UserAgent(cfg.UserAgent),
-		chromedp.WindowSize(cfg.ViewportWidth, cfg.ViewportHeight),
 		chromedp.Flag("ignore-certificate-errors", cfg.IgnoreCertErrors),
 	)
+	if cfg.Headless {
+		allocOpts = append(allocOpts, chromedp.WindowSize(cfg.ViewportWidth, cfg.ViewportHeight))
+	} else {
+		allocOpts = append(allocOpts, chromedp.Flag("start-maximized", true))
+	}
 
 	if cfg.Proxy != "" {
 		allocOpts = append(allocOpts, chromedp.ProxyServer(cfg.Proxy))
@@ -148,11 +152,18 @@ func launchBrowser(parentCtx context.Context, cfg *Config, browserPath string, l
 		allocCancel()
 	}
 
-	// Initialise the browser by setting the viewport; this also ensures the
-	// browser process actually starts so we can report a meaningful error here.
-	if err := chromedp.Run(cdpCtx,
-		chromedp.EmulateViewport(int64(cfg.ViewportWidth), int64(cfg.ViewportHeight)),
-	); err != nil {
+	// Initialise the browser; this also ensures the browser process actually
+	// starts so we can report a meaningful error here.
+	// EmulateViewport is a headless-only override — in non-headless mode the
+	// window size is already set via WindowSize above, and EmulateViewport
+	// would cause content to appear cut off.
+	var initAction chromedp.Action
+	if cfg.Headless {
+		initAction = chromedp.EmulateViewport(int64(cfg.ViewportWidth), int64(cfg.ViewportHeight))
+	} else {
+		initAction = chromedp.Navigate("about:blank")
+	}
+	if err := chromedp.Run(cdpCtx, initAction); err != nil {
 		combinedCancel()
 		return nil, nil, fmt.Errorf("browser initialisation failed: %w", err)
 	}
