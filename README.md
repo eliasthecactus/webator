@@ -1,6 +1,12 @@
-# webator
+<p align="center">
+  <img src="icon.png" width="110" alt="webator" />
+</p>
 
-**webator** is an enterprise-grade browser automation CLI tool written in Go.
+<h1 align="center">webator</h1>
+
+<p align="center">Enterprise-grade browser automation — SSO, MFA, and post-login navigation, driven by a real Chrome window.</p>
+
+---
 It drives a real Chrome or Edge browser (via [chromedp](https://github.com/chromedp/chromedp))
 to automate web-based authentication flows — including multi-step SSO logins,
 TOTP/MFA challenges, and post-login navigation.

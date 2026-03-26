@@ -2,15 +2,30 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
 
 permissions:
   contents: write
 
 jobs:
+  version:
+    name: Read version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse version from FyneApp.toml
+        id: ver
+        run: |
+          VERSION=$(grep 'Version' FyneApp.toml | head -1 | sed 's/.*Version = "\(.*\)"/\1/' | tr -d ' ')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building v$VERSION"
+
   build:
     name: Build (${{ matrix.goos }}/${{ matrix.goarch }})
+    needs: version
     runs-on: ${{ matrix.runner }}
 
     strategy:
@@ -69,7 +84,7 @@ jobs:
 
   release:
     name: Create Release
-    needs: build
+    needs: [version, build]
     runs-on: ubuntu-latest
 
     steps:
@@ -78,7 +93,11 @@ jobs:
           path: dist
           merge-multiple: true
 
+      - uses: actions/checkout@v4
+
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ needs.version.outputs.version }}
+          name: v${{ needs.version.outputs.version }}
           files: dist/*
           generate_release_notes: true

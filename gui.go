@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -12,6 +13,9 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 )
+
+//go:embed icon.png
+var iconBytes []byte
 
 // WebatorGUI manages the Fyne application window.
 type WebatorGUI struct {
@@ -30,7 +34,9 @@ type WebatorGUI struct {
 
 // NewWebatorGUI creates the window but does not show it yet.
 func NewWebatorGUI(cfg *Config, debug bool) *WebatorGUI {
-	a := app.NewWithID("io.webator.app")
+	a := app.NewWithID("ch.eliasthecactus.webator")
+	icon := fyne.NewStaticResource("icon.png", iconBytes)
+	a.SetIcon(icon)
 
 	g := &WebatorGUI{
 		fyneApp:   a,
@@ -73,6 +79,7 @@ func NewWebatorGUI(cfg *Config, debug bool) *WebatorGUI {
 	}
 
 	w := a.NewWindow("webator")
+	w.SetIcon(icon)
 	w.SetContent(container.NewPadded(content))
 	if debug {
 		w.Resize(fyne.NewSize(620, 460))
