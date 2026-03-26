@@ -264,6 +264,10 @@ func runGUI(cfg *Config, debug bool, browserExec string) {
 			gui.AddCleanup(cancelAuth)
 		}
 
-		return runAuth(authCtx, cfg, logger, gui.SetStatus)
+		if err := runAuth(authCtx, cfg, logger, gui.SetStatus); err != nil {
+			return err
+		}
+		gui.WatchBrowser(browserCtx, baseCtx)
+		return nil
 	})
 }

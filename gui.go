@@ -129,6 +129,27 @@ func (g *WebatorGUI) AppendLog(line string) {
 	})
 }
 
+// WatchBrowser starts a goroutine that detects when the browser is closed
+// externally (not because the GUI window was already closed). When detected,
+// debug mode shows "Session closed"; non-debug mode closes the GUI window.
+func (g *WebatorGUI) WatchBrowser(browserCtx, baseCtx context.Context) {
+	go func() {
+		<-browserCtx.Done()
+		// If baseCtx is also done, the GUI window was closed first and
+		// triggered this cancellation — nothing more to do.
+		select {
+		case <-baseCtx.Done():
+			return
+		default:
+		}
+		if g.debugMode {
+			g.SetStatus("Session closed")
+		} else {
+			fyne.Do(func() { g.window.Close() })
+		}
+	}()
+}
+
 // AddCleanup registers a function called when the window closes.
 func (g *WebatorGUI) AddCleanup(fn func()) {
 	g.mu.Lock()
