@@ -161,44 +161,45 @@ func main() {
 		os.Exit(1)
 	}
 
-	// ── Set up logger ──────────────────────────────────────────────────────
-	logger, logCleanup, err := setupLogger(&cfg, *debug)
+	// ── Find browser ───────────────────────────────────────────────────────
+	browserExec, err := findBrowser(&cfg, slog.Default())
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+
+	if cfg.Headless {
+		runHeadless(&cfg, *debug, browserExec)
+	} else {
+		runGUI(&cfg, *debug, browserExec)
+	}
+}
+
+func runHeadless(cfg *Config, debug bool, browserExec string) {
+	logger, logCleanup, err := setupLogger(cfg, debug)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error setting up logger: %v\n", err)
 		os.Exit(1)
 	}
 	defer logCleanup()
-
-	// Replace the default slog logger so any library code using slog.Default()
-	// also writes to our configured handler.
 	slog.SetDefault(logger)
 
 	logger.Info("webator starting",
 		slog.String("authStartUrl", cfg.AuthStartURL),
-		slog.String("mode", determineMode(&cfg).String()),
-		slog.Bool("debug", *debug),
+		slog.String("mode", determineMode(cfg).String()),
+		slog.Bool("headless", true),
 	)
 
-	// ── Find browser ───────────────────────────────────────────────────────
-	browserExec, err := findBrowser(&cfg, logger)
-	if err != nil {
-		logger.Error("browser not found", slog.Any("error", err))
-		os.Exit(1)
-	}
-
-	// ── Signal-aware base context (cancelled on Ctrl+C / SIGTERM) ────────
 	baseCtx, stopSignal := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stopSignal()
 
-	// ── Launch browser on the base context so it outlives the auth timeout ─
-	browserCtx, cancelBrowser, err := launchBrowser(baseCtx, &cfg, browserExec, logger)
+	browserCtx, cancelBrowser, err := launchBrowser(baseCtx, cfg, browserExec, logger)
 	if err != nil {
 		logger.Error("failed to launch browser", slog.Any("error", err))
 		os.Exit(1)
 	}
 	defer cancelBrowser()
 
-	// ── Auth context: applies --timeout only to the login flow ─────────────
 	authCtx := browserCtx
 	if cfg.Timeout > 0 {
 		var cancelAuth context.CancelFunc
@@ -206,19 +207,63 @@ func main() {
 		defer cancelAuth()
 	}
 
-	// ── Run authentication ─────────────────────────────────────────────────
-	if err := runAuth(authCtx, &cfg, logger); err != nil {
+	if err := runAuth(authCtx, cfg, logger, func(string) {}); err != nil {
 		logger.Error("authentication failed", slog.Any("error", err))
 		os.Exit(1)
 	}
 
-	// ── Keep browser open after successful auth until Ctrl+C ───────────────
-	// Manual mode already blocks inside waitManual; full-auto mode returns
-	// immediately after navigating to the target URL, so we wait here.
-	if determineMode(&cfg) == modeFullAuto {
+	if determineMode(cfg) == modeFullAuto {
 		logger.Info("browser ready — press Ctrl+C to exit")
 		<-baseCtx.Done()
 	}
 
 	logger.Info("webator exiting")
+}
+
+func runGUI(cfg *Config, debug bool, browserExec string) {
+	gui := NewWebatorGUI(cfg, debug)
+
+	var logger *slog.Logger
+	var logCleanup func()
+	if debug {
+		logger = gui.Logger()
+		logCleanup = func() {}
+	} else {
+		var err error
+		logger, logCleanup, err = setupLogger(cfg, false)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error setting up logger: %v\n", err)
+			os.Exit(1)
+		}
+	}
+	defer logCleanup()
+	slog.SetDefault(logger)
+
+	logger.Info("webator starting",
+		slog.String("authStartUrl", cfg.AuthStartURL),
+		slog.String("mode", determineMode(cfg).String()),
+		slog.Bool("debug", debug),
+	)
+
+	baseCtx, stopSignal := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopSignal()
+
+	gui.Run(stopSignal, func() error {
+		gui.SetStatus("Starting browser...")
+
+		browserCtx, cancelBrowser, err := launchBrowser(baseCtx, cfg, browserExec, logger)
+		if err != nil {
+			return err
+		}
+		gui.AddCleanup(cancelBrowser)
+
+		authCtx := browserCtx
+		if cfg.Timeout > 0 {
+			var cancelAuth context.CancelFunc
+			authCtx, cancelAuth = context.WithTimeout(browserCtx, time.Duration(cfg.Timeout)*time.Second)
+			gui.AddCleanup(cancelAuth)
+		}
+
+		return runAuth(authCtx, cfg, logger, gui.SetStatus)
+	})
 }

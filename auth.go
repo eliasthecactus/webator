@@ -40,7 +40,7 @@ func determineMode(cfg *Config) operationMode {
 }
 
 // runAuth executes the authentication flow with retry logic.
-func runAuth(ctx context.Context, cfg *Config, logger *slog.Logger) error {
+func runAuth(ctx context.Context, cfg *Config, logger *slog.Logger, statusFn func(string)) error {
 	mode := determineMode(cfg)
 	logger.Info("operation mode determined", slog.String("mode", mode.String()))
 
@@ -61,7 +61,7 @@ func runAuth(ctx context.Context, cfg *Config, logger *slog.Logger) error {
 			}
 		}
 
-		if err := loginOnce(ctx, cfg, logger, mode); err != nil {
+		if err := loginOnce(ctx, cfg, logger, mode, statusFn); err != nil {
 			lastErr = err
 			logger.Warn("authentication attempt failed",
 				slog.Int("attempt", attempt),
@@ -82,7 +82,7 @@ func runAuth(ctx context.Context, cfg *Config, logger *slog.Logger) error {
 }
 
 // loginOnce performs a single end-to-end authentication attempt.
-func loginOnce(ctx context.Context, cfg *Config, logger *slog.Logger, mode operationMode) error {
+func loginOnce(ctx context.Context, cfg *Config, logger *slog.Logger, mode operationMode, statusFn func(string)) error {
 	// waitOpts builds WaitOptions for a named step, honouring per-step overrides.
 	waitOpts := func(label string) WaitOptions {
 		to := time.Duration(cfg.Timeout) * time.Second
@@ -103,6 +103,7 @@ func loginOnce(ctx context.Context, cfg *Config, logger *slog.Logger, mode opera
 	if err := chromedp.Run(ctx, chromedp.Navigate(cfg.AuthStartURL)); err != nil {
 		return fmt.Errorf("navigate to auth start URL: %w", err)
 	}
+	statusFn("Navigating to login page...")
 
 	// ── Step 2: Check if already authenticated ──────────────────────────────
 	if cfg.AuthDoneURL != "" {
@@ -127,6 +128,7 @@ func loginOnce(ctx context.Context, cfg *Config, logger *slog.Logger, mode opera
 		}
 
 		rs := resolveSelector(cfg.UsernameSelector, logger)
+		statusFn("Filling credentials...")
 		logger.Debug("filling username field")
 		if err := chromedp.Run(ctx,
 			chromedp.Clear(cfg.UsernameSelector, rs.byOption),
@@ -195,6 +197,7 @@ func loginOnce(ctx context.Context, cfg *Config, logger *slog.Logger, mode opera
 		); err != nil {
 			return fmt.Errorf("click submit: %w", err)
 		}
+		statusFn("Waiting for authentication...")
 		if cfg.WaitAfterSubmitMs > 0 {
 			select {
 			case <-ctx.Done():
@@ -224,9 +227,9 @@ func loginOnce(ctx context.Context, cfg *Config, logger *slog.Logger, mode opera
 	// ── Step 9: Post-submit wait ─────────────────────────────────────────────
 	switch mode {
 	case modeManual:
-		return waitManual(ctx, cfg, logger)
+		return waitManual(ctx, cfg, logger, statusFn)
 	case modeFullAuto:
-		return waitForAuthDone(ctx, cfg, logger)
+		return waitForAuthDone(ctx, cfg, logger, statusFn)
 	}
 
 	return nil
@@ -257,15 +260,17 @@ func fillTOTP(ctx context.Context, cfg *Config, logger *slog.Logger, waitOpts fu
 
 // waitManual blocks until the context is cancelled, giving the user time to
 // interact with the browser manually.
-func waitManual(ctx context.Context, cfg *Config, logger *slog.Logger) error {
+func waitManual(ctx context.Context, cfg *Config, logger *slog.Logger, statusFn func(string)) error {
 	logger.Info("manual mode: browser ready for user interaction; waiting for context cancellation")
+	statusFn("Browser ready — credentials filled")
 	<-ctx.Done()
 	return nil
 }
 
 // waitForAuthDone polls the browser until authentication is confirmed, then
 // navigates to the target URL.
-func waitForAuthDone(ctx context.Context, cfg *Config, logger *slog.Logger) error {
+func waitForAuthDone(ctx context.Context, cfg *Config, logger *slog.Logger, statusFn func(string)) error {
+	statusFn("Waiting for authentication...")
 	to := time.Duration(cfg.Timeout) * time.Second
 	deadline := time.NewTimer(to)
 	defer deadline.Stop()
@@ -310,6 +315,7 @@ func waitForAuthDone(ctx context.Context, cfg *Config, logger *slog.Logger) erro
 					slog.String("selector", cfg.DoneSelector),
 					slog.String("url", currentURL),
 				)
+				statusFn("Navigating to target...")
 				return navigateToTarget(ctx, cfg, logger)
 			}
 
@@ -319,6 +325,7 @@ func waitForAuthDone(ctx context.Context, cfg *Config, logger *slog.Logger) erro
 					slog.String("authDoneUrl", cfg.AuthDoneURL),
 					slog.String("currentUrl", currentURL),
 				)
+				statusFn("Navigating to target...")
 				return navigateToTarget(ctx, cfg, logger)
 			}
 		}

@@ -11,19 +11,25 @@ permissions:
 jobs:
   build:
     name: Build (${{ matrix.goos }}/${{ matrix.goarch }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
+
     strategy:
       matrix:
         include:
-          - goos: linux
+          - runner: macos-13
+            goos: darwin
             goarch: amd64
-          - goos: linux
+
+          - runner: macos-latest
+            goos: darwin
             goarch: arm64
-          - goos: darwin
+
+          - runner: ubuntu-latest
+            goos: linux
             goarch: amd64
-          - goos: darwin
-            goarch: arm64
-          - goos: windows
+
+          - runner: windows-latest
+            goos: windows
             goarch: amd64
             ext: .exe
 
@@ -34,19 +40,32 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y libgl1-mesa-dev xorg-dev
+
+      - name: Set up gcc (Windows)
+        if: runner.os == 'Windows'
+        run: echo "C:\msys64\mingw64\bin" >> $env:GITHUB_PATH
+
       - name: Build
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: 0
+          CGO_ENABLED: 1
+        shell: bash
         run: |
-          go build -trimpath -ldflags="-s -w" \
-            -o webator-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }} .
+          LDFLAGS="-s -w"
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            LDFLAGS="$LDFLAGS -H windowsgui"
+          fi
+          go build -trimpath -ldflags="$LDFLAGS" \
+            -o webator-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext || '' }} .
 
       - uses: actions/upload-artifact@v4
         with:
           name: webator-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: webator-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}
+          path: webator-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext || '' }}
 
   release:
     name: Create Release
