@@ -66,10 +66,13 @@ jobs:
           go build -trimpath -ldflags="$LDFLAGS" \
             -o webator-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext || '' }} .
       - name: Create dist directory
+        shell: bash
         run: mkdir -p dist
       - name: Move build output into dist
+        shell: bash
         run: mv webator-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext || '' }} dist/
       - name: Compute SHA256 and record metadata
+        shell: bash
         env:
           BINARY: webator-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext || '' }}
           VERSION: ${{ env.VERSION }}
