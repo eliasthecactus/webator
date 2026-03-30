@@ -45,7 +45,12 @@ go build -o webator .
 Requires Go 1.21+.
 
 ---
+## VirusTotal uploads
 
+The release workflow does upload built binaries to VirusTotal automatically when a `VIRUSTOTAL_API_KEY` repository secret is configured.
+
+
+---
 ## Overview
 
 webator supports two operating modes:

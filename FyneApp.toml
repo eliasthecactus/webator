@@ -5,5 +5,5 @@ Email    = "mail@elias.uno"
   Icon  = "icon.png"
   Name  = "Webator"
   ID    = "ch.eliasthecactus.webator"
-  Version = "1.3.3"
+  Version = "1.3.4"
   Build = 1
