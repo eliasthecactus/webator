@@ -104,6 +104,14 @@ The browser stays open after navigation. Press **Ctrl+C** or close the browser t
 
 No window is shown. Logs go to `$TMPDIR/browser-automation.log`.
 
+### Kiosk Mode
+
+```bash
+./webator --kiosk --incognito --auth-start-url "https://login.example.com" --browser-path "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"
+```
+
+This enables kiosk-friendly browser options such as fullscreen mode, disabled context menu, disabled dev tools and translation, and touchscreen/pinch restrictions.
+
 ### Debug Mode (verbose stdout logs)
 
 ```bash
@@ -266,6 +274,20 @@ Most MFA flows (Microsoft, Okta) use step 2. Some older portals present all fiel
 | `--viewport-width` | `1920` | Viewport width in pixels |
 | `--viewport-height` | `1080` | Viewport height in pixels |
 | `--user-agent` | Chrome 124 UA | Browser User-Agent string |
+| `--kiosk` | `false` | Run the browser in kiosk/fullscreen mode |
+| `--incognito` | `false` | Open the browser in an incognito/private session |
+| `--disable-context-menu` | `true` | Disable the browser context menu |
+| `--disable-dev-tools` | `true` | Prevent opening developer tools |
+| `--disable-features` | `DevTools` | Additional browser features to disable |
+| `--kiosk-printing` | `true` | Enable kiosk-friendly printing behavior |
+| `--disable-pinch` | `true` | Disable pinch/zoom gestures |
+| `--overscroll-history-navigation` | `0` | Overscroll history navigation setting |
+| `--pull-to-refresh` | `0` | Pull-to-refresh setting |
+| `--disable-touch-adjustment` | `true` | Disable touch adjustment UI |
+| `--disable-translate` | `true` | Disable browser translation prompts |
+| `--edge-kiosk-type` | `fullscreen` | Edge kiosk type when using `--kiosk` |
+| `--no-first-run` | `true` | Disable first-run browser checks |
+| `--no-default-browser-check` | `true` | Disable default browser check |
 | `--proxy` | *(none)* | Proxy URL (e.g. `http://proxy.corp:8080`) |
 | `--ignore-cert-errors` | `false` | Ignore TLS/SSL certificate errors |
 | `--timeout` | `60` | Timeout in seconds for the login flow |

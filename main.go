@@ -42,6 +42,20 @@ func main() {
 	viewportWidth := flag.Int("viewport-width", 0, "Browser viewport width in pixels")
 	viewportHeight := flag.Int("viewport-height", 0, "Browser viewport height in pixels")
 	userAgent := flag.String("user-agent", "", "Browser User-Agent string")
+	kiosk := flag.Bool("kiosk", false, "Run the browser in kiosk mode")
+	incognito := flag.Bool("incognito", false, "Run the browser in an incognito/private session")
+	disableContextMenu := flag.Bool("disable-context-menu", true, "Disable the browser context menu")
+	disableDevTools := flag.Bool("disable-dev-tools", true, "Prevent opening developer tools")
+	disableTranslate := flag.Bool("disable-translate", true, "Disable browser translation prompts")
+	disablePinch := flag.Bool("disable-pinch", true, "Disable pinch/zoom gestures")
+	overscrollHistoryNavigation := flag.Int("overscroll-history-navigation", 0, "Overscroll history navigation setting")
+	pullToRefresh := flag.Int("pull-to-refresh", 0, "Pull-to-refresh setting")
+	disableTouchAdjustment := flag.Bool("disable-touch-adjustment", true, "Disable touch adjustment UI")
+	kioskPrinting := flag.Bool("kiosk-printing", true, "Enable kiosk-friendly printing behavior")
+	disableFeatures := flag.String("disable-features", "", "Additional browser features to disable")
+	edgeKioskType := flag.String("edge-kiosk-type", "", "Edge kiosk type to use when running in kiosk mode")
+	noFirstRun := flag.Bool("no-first-run", true, "Disable browser first-run checks")
+	noDefaultBrowserCheck := flag.Bool("no-default-browser-check", true, "Disable default browser check")
 
 	// Network flags
 	proxy := flag.String("proxy", "", "HTTP/HTTPS proxy URL (e.g. http://proxy:8080)")
@@ -126,6 +140,48 @@ func main() {
 	}
 	if setFlags["user-agent"] {
 		cfg.UserAgent = *userAgent
+	}
+	if setFlags["kiosk"] {
+		cfg.Kiosk = *kiosk
+	}
+	if setFlags["incognito"] {
+		cfg.Incognito = *incognito
+	}
+	if setFlags["disable-context-menu"] {
+		cfg.DisableContextMenu = *disableContextMenu
+	}
+	if setFlags["disable-dev-tools"] {
+		cfg.DisableDevTools = *disableDevTools
+	}
+	if setFlags["disable-translate"] {
+		cfg.DisableTranslate = *disableTranslate
+	}
+	if setFlags["disable-pinch"] {
+		cfg.DisablePinch = *disablePinch
+	}
+	if setFlags["overscroll-history-navigation"] {
+		cfg.OverscrollHistoryNavigation = *overscrollHistoryNavigation
+	}
+	if setFlags["pull-to-refresh"] {
+		cfg.PullToRefresh = *pullToRefresh
+	}
+	if setFlags["disable-touch-adjustment"] {
+		cfg.DisableTouchAdjustment = *disableTouchAdjustment
+	}
+	if setFlags["kiosk-printing"] {
+		cfg.KioskPrinting = *kioskPrinting
+	}
+	if setFlags["disable-features"] {
+		cfg.DisableFeatures = *disableFeatures
+	}
+	if setFlags["edge-kiosk-type"] {
+		cfg.EdgeKioskType = *edgeKioskType
+	}
+	if setFlags["no-first-run"] {
+		cfg.NoFirstRun = *noFirstRun
+	}
+	if setFlags["no-default-browser-check"] {
+		cfg.NoDefaultBrowserCheck = *noDefaultBrowserCheck
 	}
 	if setFlags["proxy"] {
 		cfg.Proxy = *proxy

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/chromedp/chromedp"
 )
@@ -89,6 +90,20 @@ func findBrowser(cfg *Config, logger *slog.Logger) (string, error) {
 	return "", fmt.Errorf("no supported browser found; install Chrome or Edge, or set --browser-path")
 }
 
+func buildDisableFeatures(settings string) string {
+	base := "site-per-process,Translate,BlinkGenPropertyTrees"
+	settings = strings.TrimSpace(settings)
+	if settings == "" {
+		return base
+	}
+	return base + "," + settings
+}
+
+func isEdgeExecutable(path string) bool {
+	lower := strings.ToLower(path)
+	return strings.Contains(lower, "microsoft edge") || strings.Contains(lower, "msedge") || strings.Contains(lower, "microsoft-edge")
+}
+
 // launchBrowser starts a browser instance using the given path and
 // configuration, and returns the chromedp context along with a combined cancel
 // function that tears down both the browser allocator and the chromedp context.
@@ -96,10 +111,15 @@ func launchBrowser(parentCtx context.Context, cfg *Config, browserPath string, l
 	// Build allocator options explicitly so we can conditionally exclude
 	// chromedp.Headless. Using Flag("headless", false) on top of
 	// DefaultExecAllocatorOptions is not reliable across chromedp versions.
-	allocOpts := []chromedp.ExecAllocatorOption{
-		chromedp.NoFirstRun,
-		chromedp.NoDefaultBrowserCheck,
-		// chromedp.Headless is added below only when cfg.Headless == true.
+	allocOpts := []chromedp.ExecAllocatorOption{}
+	if cfg.NoFirstRun {
+		allocOpts = append(allocOpts, chromedp.NoFirstRun)
+	}
+	if cfg.NoDefaultBrowserCheck {
+		allocOpts = append(allocOpts, chromedp.NoDefaultBrowserCheck)
+	}
+	// chromedp.Headless is added below only when cfg.Headless == true.
+	allocOpts = append(allocOpts,
 		chromedp.Flag("disable-background-networking", true),
 		chromedp.Flag("enable-features", "NetworkService,NetworkServiceInProcess"),
 		chromedp.Flag("disable-background-timer-throttling", true),
@@ -109,7 +129,8 @@ func launchBrowser(parentCtx context.Context, cfg *Config, browserPath string, l
 		chromedp.Flag("disable-default-apps", true),
 		chromedp.Flag("disable-dev-shm-usage", true),
 		chromedp.Flag("disable-extensions", true),
-		chromedp.Flag("disable-features", "site-per-process,Translate,BlinkGenPropertyTrees"),
+		chromedp.Flag("disable-dev-tools", cfg.DisableDevTools),
+		chromedp.Flag("disable-features", buildDisableFeatures(cfg.DisableFeatures)),
 		chromedp.Flag("disable-hang-monitor", true),
 		chromedp.Flag("disable-ipc-flooding-protection", true),
 		chromedp.Flag("disable-popup-blocking", true),
@@ -117,14 +138,28 @@ func launchBrowser(parentCtx context.Context, cfg *Config, browserPath string, l
 		chromedp.Flag("disable-renderer-backgrounding", true),
 		chromedp.Flag("disable-sync", true),
 		chromedp.Flag("force-color-profile", "srgb"),
+		chromedp.Flag("disable-context-menu", cfg.DisableContextMenu),
+		chromedp.Flag("kiosk-printing", cfg.KioskPrinting),
 		chromedp.Flag("metrics-recording-only", true),
 		chromedp.Flag("safebrowsing-disable-auto-update", true),
 		chromedp.Flag("password-store", "basic"),
 		chromedp.Flag("use-mock-keychain", true),
-	}
+	)
 
 	if cfg.Headless {
 		allocOpts = append(allocOpts, chromedp.Headless)
+	}
+
+	if cfg.Incognito {
+		allocOpts = append(allocOpts, chromedp.Flag("incognito", true))
+	}
+
+	if cfg.Kiosk {
+		allocOpts = append(allocOpts, chromedp.Flag("kiosk", true))
+	}
+
+	if cfg.EdgeKioskType != "" && cfg.Kiosk && isEdgeExecutable(browserPath) {
+		allocOpts = append(allocOpts, chromedp.Flag("edge-kiosk-type", cfg.EdgeKioskType))
 	}
 
 	allocOpts = append(allocOpts,
@@ -134,6 +169,8 @@ func launchBrowser(parentCtx context.Context, cfg *Config, browserPath string, l
 	)
 	if cfg.Headless {
 		allocOpts = append(allocOpts, chromedp.WindowSize(cfg.ViewportWidth, cfg.ViewportHeight))
+	} else if cfg.Kiosk {
+		allocOpts = append(allocOpts, chromedp.Flag("start-fullscreen", true))
 	} else {
 		allocOpts = append(allocOpts, chromedp.Flag("start-maximized", true))
 	}
