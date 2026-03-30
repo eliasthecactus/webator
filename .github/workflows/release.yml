@@ -91,13 +91,17 @@ jobs:
           print(text)
           PY
       - name: Upload binary to VirusTotal
-        if: secrets.VIRUSTOTAL_API_KEY != ''
         env:
           VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
           BINARY: webator-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext || '' }}
           VERSION: ${{ env.VERSION }}
         shell: bash
         run: |
+          if [ -z "$VIRUSTOTAL_API_KEY" ]; then
+            echo "VIRUSTOTAL_API_KEY not configured; skipping VirusTotal upload"
+            exit 0
+          fi
+
           python - <<'PY'
           import hashlib, json, os, pathlib, time, urllib.request, uuid
 
