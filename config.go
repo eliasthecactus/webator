@@ -35,32 +35,34 @@ type Config struct {
 	DoneSelector   string `json:"done_selector"`
 
 	// Browser settings
-	BrowserPath    string `json:"browser_path"`
-	Headless       bool   `json:"headless"`
-	ViewportWidth  int    `json:"viewport_width"`
-	ViewportHeight int    `json:"viewport_height"`
-	UserAgent      string `json:"user_agent"`
-	Kiosk          bool   `json:"kiosk"`
-	Incognito      bool   `json:"incognito"`
-	DisableContextMenu bool `json:"disable_context_menu"`
-	DisableDevTools    bool `json:"disable_dev_tools"`
-	DisableTranslate   bool `json:"disable_translate"`
-	DisablePinch       bool `json:"disable_pinch"`
-	DisableTouchAdjustment bool `json:"disable_touch_adjustment"`
-	KioskPrinting     bool   `json:"kiosk_printing"`
-	OverscrollHistoryNavigation int `json:"overscroll_history_navigation"`
-	PullToRefresh    int    `json:"pull_to_refresh"`
-	DisableFeatures   string `json:"disable_features"`
-	EdgeKioskType     string `json:"edge_kiosk_type"`
-	NoFirstRun        bool   `json:"no_first_run"`
-	NoDefaultBrowserCheck bool `json:"no_default_browser_check"`
+	BrowserPath                 string `json:"browser_path"`
+	Headless                    bool   `json:"headless"`
+	ViewportWidth               int    `json:"viewport_width"`
+	ViewportHeight              int    `json:"viewport_height"`
+	UserAgent                   string `json:"user_agent"`
+	Kiosk                       bool   `json:"kiosk"`
+	KioskFullscreen             bool   `json:"kiosk_fullscreen"`
+	App                         bool   `json:"app"`
+	Incognito                   bool   `json:"incognito"`
+	DisableContextMenu          bool   `json:"disable_context_menu"`
+	DisableDevTools             bool   `json:"disable_dev_tools"`
+	DisableTranslate            bool   `json:"disable_translate"`
+	DisablePinch                bool   `json:"disable_pinch"`
+	DisableTouchAdjustment      bool   `json:"disable_touch_adjustment"`
+	KioskPrinting               bool   `json:"kiosk_printing"`
+	OverscrollHistoryNavigation int    `json:"overscroll_history_navigation"`
+	PullToRefresh               int    `json:"pull_to_refresh"`
+	DisableFeatures             string `json:"disable_features"`
+	EdgeKioskType               string `json:"edge_kiosk_type"`
+	NoFirstRun                  bool   `json:"no_first_run"`
+	NoDefaultBrowserCheck       bool   `json:"no_default_browser_check"`
 
 	// Network settings
 	Proxy            string `json:"proxy"`
 	IgnoreCertErrors bool   `json:"ignore_cert_errors"`
 
 	// Timing and retry settings
-	Timeout      int `json:"timeout"`       // seconds
+	Timeout      int `json:"timeout"` // seconds
 	RetryCount   int `json:"retry_count"`
 	RetryDelayMs int `json:"retry_delay_ms"`
 
@@ -77,31 +79,33 @@ type Config struct {
 // defaultConfig returns a Config populated with safe, sensible defaults.
 func defaultConfig() Config {
 	return Config{
-		TOTPStep:       2,
-		Headless:       false,
-		ViewportWidth:  1920,
-		ViewportHeight: 1080,
-		UserAgent:      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-		Kiosk:          false,
-		Incognito:      false,
-		DisableContextMenu: true,
-		DisableDevTools:    true,
-		DisableTranslate:   true,
-		DisablePinch:       true,
-		DisableTouchAdjustment: true,
-		KioskPrinting:     true,
+		TOTPStep:                    2,
+		Headless:                    false,
+		ViewportWidth:               1920,
+		ViewportHeight:              1080,
+		UserAgent:                   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+		Kiosk:                       false,
+		KioskFullscreen:             true,
+		App:                         false,
+		Incognito:                   false,
+		DisableContextMenu:          true,
+		DisableDevTools:             true,
+		DisableTranslate:            true,
+		DisablePinch:                true,
+		DisableTouchAdjustment:      true,
+		KioskPrinting:               true,
 		OverscrollHistoryNavigation: 0,
-		PullToRefresh:    0,
-		DisableFeatures:   "DevTools",
-		EdgeKioskType:     "fullscreen",
-		NoFirstRun:        true,
-		NoDefaultBrowserCheck: true,
-		Timeout:        60,
-		RetryCount:     3,
-		RetryDelayMs:   1500,
-		LogLevel:       "info",
-		LogFile:        filepath.Join(os.TempDir(), "browser-automation.log"),
-		PollIntervalMs: 250,
+		PullToRefresh:               0,
+		DisableFeatures:             "DevTools",
+		EdgeKioskType:               "fullscreen",
+		NoFirstRun:                  true,
+		NoDefaultBrowserCheck:       true,
+		Timeout:                     60,
+		RetryCount:                  3,
+		RetryDelayMs:                1500,
+		LogLevel:                    "info",
+		LogFile:                     filepath.Join(os.TempDir(), "browser-automation.log"),
+		PollIntervalMs:              250,
 	}
 }
 

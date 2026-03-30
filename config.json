@@ -26,6 +26,8 @@
   "user_agent": "",
   "browser_path": "",
   "kiosk": false,
+  "kiosk_fullscreen": true,
+  "app": false,
   "incognito": false,
   "disable_context_menu": true,
   "disable_dev_tools": true,
