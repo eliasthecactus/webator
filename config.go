@@ -55,6 +55,7 @@ type Config struct {
 	EdgeKioskType               string `json:"edge_kiosk_type"`
 	NoFirstRun                  bool   `json:"no_first_run"`
 	NoDefaultBrowserCheck       bool   `json:"no_default_browser_check"`
+	WebviewTitle                string `json:"webview_title"`
 
 	// Network settings
 	Proxy            string `json:"proxy"`

@@ -12,6 +12,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	"github.com/webview/webview"
+	"net/url"
 )
 
 func main() {
@@ -47,6 +48,7 @@ func main() {
 	userAgent := flag.String("user-agent", "", "Browser User-Agent string")
 	kiosk := flag.Bool("kiosk", false, "Run the browser in kiosk mode")
 	webviewFlag := flag.Bool("webview", false, "Render the auth page in an embedded webview instead of launching an external browser")
+	webviewTitle := flag.String("webview-title", "", "Title for the embedded webview window")
 	incognito := flag.Bool("incognito", false, "Run the browser in an incognito/private session")
 	disableContextMenu := flag.Bool("disable-context-menu", true, "Disable the browser context menu")
 	disableDevTools := flag.Bool("disable-dev-tools", true, "Prevent opening developer tools")
@@ -150,6 +152,9 @@ func main() {
 	}
 	if setFlags["webview"] {
 		cfg.Webview = *webviewFlag
+	}
+	if setFlags["webview-title"] {
+		cfg.WebviewTitle = *webviewTitle
 	}
 	if setFlags["incognito"] {
 		cfg.Incognito = *incognito
@@ -466,9 +471,31 @@ func runWebview(cfg *Config, debug bool) {
 	logger.Info("webator exiting")
 }
 
+func deriveWebviewTitle(cfg *Config) string {
+	if cfg.WebviewTitle != "" {
+		return cfg.WebviewTitle
+	}
+	if cfg.NavigateURL != "" {
+		return titleFromURL(cfg.NavigateURL)
+	}
+	return titleFromURL(cfg.AuthStartURL)
+}
+
+func titleFromURL(raw string) string {
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Host == "" {
+		return raw
+	}
+	return parsed.Host
+}
+
 func newWebviewWindow(cfg *Config, controller *webviewController) (webview.WebView, error) {
+	title := deriveWebviewTitle(cfg)
+	if title == "" {
+		title = "webator"
+	}
 	w := webview.New(webview.Settings{
-		Title:                  "webator",
+		Title:                  title,
 		URL:                    cfg.AuthStartURL,
 		Width:                  cfg.ViewportWidth,
 		Height:                 cfg.ViewportHeight,

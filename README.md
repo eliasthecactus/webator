@@ -112,10 +112,12 @@ No window is shown. Logs go to `$TMPDIR/browser-automation.log`.
 ### Webview Mode
 
 ```bash
-./webator --webview --debug --auth-start-url "https://login.example.com"
+./webator --webview --debug --auth-start-url "https://login.example.com" --webview-title "Login"
 ```
 
-This opens the auth page in an embedded native webview window instead of launching an external browser. In `--debug` mode, a GUI window is shown with a log box. Full-auto authentication is not supported in this mode; the user must complete login manually.
+This opens the auth page in an embedded native webview window instead of launching an external browser. The embedded window title can be set explicitly with `--webview-title` or `webview_title` in config. If not provided, the title is derived from `navigate-url` when present, otherwise from `auth-start-url`.
+
+In `--debug` mode, a GUI window is shown with a log box. Full-auto authentication is not supported in this mode; the user must complete login manually.
 
 ### Kiosk Mode
 
@@ -145,6 +147,8 @@ All flags can be set in a JSON config file. CLI flags always override the file.
 ```
 
 A blank template is included at [`config.json`](./config.json). Config keys use **snake_case**.
+
+The embedded webview title can be configured with `webview_title` in JSON. If omitted, webview mode will derive a title from `navigate_url` first, then `auth_start_url`.
 
 ### Example config — simple login (not tested by me)
 
@@ -290,6 +294,7 @@ Most MFA flows (Microsoft, Okta) use step 2. Some older portals present all fiel
 | `--user-agent` | Chrome 124 UA | Browser User-Agent string |
 | `--kiosk` | `false` | Run the browser in kiosk/fullscreen mode |
 | `--webview` | `false` | Render the auth page in an embedded webview instead of using an external browser |
+| `--webview-title` | *(none)* | Explicit title for the embedded webview window |
 | `--incognito` | `false` | Open the browser in an incognito/private session |
 | `--disable-context-menu` | `true` | Disable the browser context menu |
 | `--disable-dev-tools` | `true` | Prevent opening developer tools |
