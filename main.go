@@ -344,6 +344,8 @@ func runGUI(cfg *Config, debug bool, browserExec string) {
 }
 
 func runWebview(cfg *Config, debug bool) {
+	controller := newWebviewController()
+
 	if debug {
 		gui := NewWebatorGUI(cfg, true)
 		logger := gui.Logger()
@@ -360,12 +362,8 @@ func runWebview(cfg *Config, debug bool) {
 			slog.Bool("webview", true),
 		)
 
-		if cfg.AuthDoneURL != "" && cfg.NavigateURL != "" {
-			logger.Warn("webview mode does not support full-auto authentication; manual auth only")
-		}
-
 		logger.Info("opening embedded webview", slog.String("url", cfg.AuthStartURL))
-		w, err := newWebviewWindow(cfg)
+		w, err := newWebviewWindow(cfg, controller)
 		if err != nil {
 			logger.Error("failed to create embedded webview", slog.Any("error", err))
 			os.Exit(1)
@@ -406,7 +404,18 @@ func runWebview(cfg *Config, debug bool) {
 		gui.Run(stopSignal, func() error {
 			gui.SetStatus("Starting embedded webview...")
 			logger.Info("embedded webview running")
-			<-loopDone
+
+			authCtx := baseCtx
+			if cfg.Timeout > 0 {
+				var cancelAuth context.CancelFunc
+				authCtx, cancelAuth = context.WithTimeout(baseCtx, time.Duration(cfg.Timeout)*time.Second)
+				gui.AddCleanup(cancelAuth)
+			}
+
+			if err := runWebviewAuth(authCtx, cfg, logger, gui.SetStatus, w, controller); err != nil {
+				return err
+			}
+
 			return nil
 		})
 		return
@@ -420,36 +429,52 @@ func runWebview(cfg *Config, debug bool) {
 	defer logCleanup()
 	slog.SetDefault(logger)
 
+	baseCtx, stopSignal := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopSignal()
+
 	logger.Info("webator starting",
 		slog.String("authStartUrl", cfg.AuthStartURL),
 		slog.Bool("debug", debug),
 		slog.Bool("webview", true),
 	)
 
-	if cfg.AuthDoneURL != "" && cfg.NavigateURL != "" {
-		logger.Warn("webview mode does not support full-auto authentication; manual auth only")
-	}
-
 	logger.Info("opening embedded webview", slog.String("url", cfg.AuthStartURL))
-	w, err := newWebviewWindow(cfg)
+	w, err := newWebviewWindow(cfg, controller)
 	if err != nil {
 		logger.Error("failed to create embedded webview", slog.Any("error", err))
 		os.Exit(1)
 	}
+
+	go func() {
+		authCtx := baseCtx
+		if cfg.Timeout > 0 {
+			var cancelAuth context.CancelFunc
+			authCtx, cancelAuth = context.WithTimeout(baseCtx, time.Duration(cfg.Timeout)*time.Second)
+			defer cancelAuth()
+		}
+		if err := runWebviewAuth(authCtx, cfg, logger, func(string) {}, w, controller); err != nil {
+			logger.Error("embedded auth failed", slog.Any("error", err))
+			w.Dispatch(func() {
+				w.Exit()
+			})
+		}
+	}()
+
 	w.Run()
 
 	logger.Info("embedded webview closed")
 	logger.Info("webator exiting")
 }
 
-func newWebviewWindow(cfg *Config) (webview.WebView, error) {
+func newWebviewWindow(cfg *Config, controller *webviewController) (webview.WebView, error) {
 	w := webview.New(webview.Settings{
-		Title:     "webator",
-		URL:       cfg.AuthStartURL,
-		Width:     cfg.ViewportWidth,
-		Height:    cfg.ViewportHeight,
-		Resizable: true,
-		Debug:     false,
+		Title:                  "webator",
+		URL:                    cfg.AuthStartURL,
+		Width:                  cfg.ViewportWidth,
+		Height:                 cfg.ViewportHeight,
+		Resizable:              true,
+		Debug:                  false,
+		ExternalInvokeCallback: controller.callback,
 	})
 	if w == nil {
 		return nil, fmt.Errorf("failed to create embedded webview")
