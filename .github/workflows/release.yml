@@ -93,11 +93,27 @@ jobs:
           (binary.parent / f'{binary.name}.sha256').write_text(digest + '\n')
           print(text)
           PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: webator-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: |
+            dist/webator-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext || '' }}
+            dist/webator-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext || '' }}.vt-summary.txt
+
+  virustotal:
+    name: Upload to VirusTotal
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
       - name: Upload binary to VirusTotal
         env:
           VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
-          BINARY: webator-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext || '' }}
-          VERSION: ${{ env.VERSION }}
+          VERSION: ${{ needs.version.outputs.version }}
         shell: bash
         run: |
           if [ -z "$VIRUSTOTAL_API_KEY" ]; then
@@ -105,78 +121,82 @@ jobs:
             exit 0
           fi
 
-          python - <<'PY'
-          import hashlib, json, os, pathlib, time, urllib.request, uuid
+          for binary in dist/webator-*; do
+            if [[ "$binary" == *.sha256 ]] || [[ "$binary" == *.vt-summary.txt ]]; then
+              continue
+            fi
+            if [ ! -f "$binary" ]; then
+              continue
+            fi
+            echo "Uploading $binary to VirusTotal"
+            BINARY="$binary" python - <<'PY'
+            import hashlib, json, os, pathlib, time, urllib.request, uuid
 
-          binary = pathlib.Path('dist') / os.environ['BINARY']
-          api_key = os.environ['VIRUSTOTAL_API_KEY']
-          sha256 = hashlib.sha256(binary.read_bytes()).hexdigest()
-          boundary = uuid.uuid4().hex
-          body = b'--' + boundary.encode() + b'\r\n'
-          body += f'Content-Disposition: form-data; name="file"; filename="{binary.name}"\r\n'.encode()
-          body += b'Content-Type: application/octet-stream\r\n\r\n'
-          body += binary.read_bytes() + b'\r\n'
-          body += b'--' + boundary.encode() + b'--\r\n'
+            binary = pathlib.Path(os.environ['BINARY'])
+            api_key = os.environ['VIRUSTOTAL_API_KEY']
+            sha256 = hashlib.sha256(binary.read_bytes()).hexdigest()
+            boundary = uuid.uuid4().hex
+            body = b'--' + boundary.encode() + b'\r\n'
+            body += f'Content-Disposition: form-data; name="file"; filename="{binary.name}"\r\n'.encode()
+            body += b'Content-Type: application/octet-stream\r\n\r\n'
+            body += binary.read_bytes() + b'\r\n'
+            body += b'--' + boundary.encode() + b'--\r\n'
 
-          req = urllib.request.Request(
-              'https://www.virustotal.com/api/v3/files',
-              data=body,
-              headers={
-                  'x-apikey': api_key,
-                  'Content-Type': f'multipart/form-data; boundary={boundary}',
-              },
-          )
-          with urllib.request.urlopen(req) as resp:
-              upload = json.load(resp)
-          analysis_id = upload['data']['id']
+            req = urllib.request.Request(
+                'https://www.virustotal.com/api/v3/files',
+                data=body,
+                headers={
+                    'x-apikey': api_key,
+                    'Content-Type': f'multipart/form-data; boundary={boundary}',
+                },
+            )
+            with urllib.request.urlopen(req) as resp:
+                upload = json.load(resp)
+            analysis_id = upload['data']['id']
 
-          for attempt in range(30):
-              if attempt:
-                  time.sleep(5)
-              req = urllib.request.Request(
-                  f'https://www.virustotal.com/api/v3/analyses/{analysis_id}',
-                  headers={'x-apikey': api_key},
-              )
-              with urllib.request.urlopen(req) as resp:
-                  analysis = json.load(resp)
-              status = analysis['data']['attributes']['status']
-              print(f'Analysis status: {status}')
-              if status == 'completed':
-                  break
-          else:
-              raise SystemExit('VirusTotal analysis did not complete within the allotted time')
+            for attempt in range(30):
+                if attempt:
+                    time.sleep(5)
+                req = urllib.request.Request(
+                    f'https://www.virustotal.com/api/v3/analyses/{analysis_id}',
+                    headers={'x-apikey': api_key},
+                )
+                with urllib.request.urlopen(req) as resp:
+                    analysis = json.load(resp)
+                status = analysis['data']['attributes']['status']
+                print(f'Analysis status: {status}')
+                if status == 'completed':
+                    break
+            else:
+                raise SystemExit('VirusTotal analysis did not complete within the allotted time')
 
-          req = urllib.request.Request(
-              f'https://www.virustotal.com/api/v3/files/{sha256}',
-              headers={'x-apikey': api_key},
-          )
-          with urllib.request.urlopen(req) as resp:
-              metadata = json.load(resp)
+            req = urllib.request.Request(
+                f'https://www.virustotal.com/api/v3/files/{sha256}',
+                headers={'x-apikey': api_key},
+            )
+            with urllib.request.urlopen(req) as resp:
+                metadata = json.load(resp)
 
-          stats = metadata['data']['attributes'].get('last_analysis_stats', {})
-          total = sum(stats.values())
-          positives = stats.get('malicious', 0)
-          vt_url = f'https://www.virustotal.com/gui/file/{sha256}/detection'
+            stats = metadata['data']['attributes'].get('last_analysis_stats', {})
+            total = sum(stats.values())
+            positives = stats.get('malicious', 0)
+            vt_url = f'https://www.virustotal.com/gui/file/{sha256}/detection'
 
-          summary = [
-              f'Binary: {binary.name}',
-              f'SHA256: {sha256}',
-              f'Version: {os.environ["VERSION"]}',
-              f'Source: https://github.com/{os.environ["GITHUB_REPOSITORY"]}/tree/v{os.environ["VERSION"]}',
-              f'VirusTotal upload: {vt_url}',
-              f'Analysis ID: {analysis_id}',
-              f'Positives: {positives}/{total}',
-          ]
-          text = '\n'.join(summary) + '\n'
-          (binary.parent / f'{binary.name}.vt-summary.txt').write_text(text)
-          print(text)
-          PY
-      - uses: actions/upload-artifact@v4
-        with:
-          name: webator-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: |
-            dist/webator-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext || '' }}
-            dist/webator-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext || '' }}.vt-summary.txt
+            summary = [
+                f'Binary: {binary.name}',
+                f'SHA256: {sha256}',
+                f'Version: {os.environ["VERSION"]}',
+                f'Source: https://github.com/{os.environ["GITHUB_REPOSITORY"]}/tree/v{os.environ["VERSION"]}',
+                f'VirusTotal upload: {vt_url}',
+                f'Analysis ID: {analysis_id}',
+                f'Positives: {positives}/{total}',
+            ]
+            text = '\n'.join(summary) + '\n'
+            (binary.parent / f'{binary.name}.vt-summary.txt').write_text(text)
+            print(text)
+            PY
+          done
+
   release:
     name: Create Release
     needs: [version, build]
