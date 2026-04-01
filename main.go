@@ -9,6 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/webview/webview"
 )
 
 func main() {
@@ -43,6 +45,7 @@ func main() {
 	viewportHeight := flag.Int("viewport-height", 0, "Browser viewport height in pixels")
 	userAgent := flag.String("user-agent", "", "Browser User-Agent string")
 	kiosk := flag.Bool("kiosk", false, "Run the browser in kiosk mode")
+	webviewFlag := flag.Bool("webview", false, "Render the auth page in an embedded webview instead of launching an external browser")
 	incognito := flag.Bool("incognito", false, "Run the browser in an incognito/private session")
 	disableContextMenu := flag.Bool("disable-context-menu", true, "Disable the browser context menu")
 	disableDevTools := flag.Bool("disable-dev-tools", true, "Prevent opening developer tools")
@@ -144,6 +147,9 @@ func main() {
 	if setFlags["kiosk"] {
 		cfg.Kiosk = *kiosk
 	}
+	if setFlags["webview"] {
+		cfg.Webview = *webviewFlag
+	}
 	if setFlags["incognito"] {
 		cfg.Incognito = *incognito
 	}
@@ -215,6 +221,14 @@ func main() {
 	if cfg.AuthStartURL == "" {
 		fmt.Fprintln(os.Stderr, "error: --auth-start-url is required (or set auth_start_url in config file)")
 		os.Exit(1)
+	}
+
+	if cfg.Webview {
+		if cfg.Headless {
+			cfg.Headless = false
+		}
+		runWebview(&cfg, *debug)
+		return
 	}
 
 	// ── Find browser ───────────────────────────────────────────────────────
@@ -326,4 +340,33 @@ func runGUI(cfg *Config, debug bool, browserExec string) {
 		gui.WatchBrowser(browserCtx, baseCtx)
 		return nil
 	})
+}
+
+func runWebview(cfg *Config, debug bool) {
+	logger, logCleanup, err := setupLogger(cfg, debug)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error setting up logger: %v\n", err)
+		os.Exit(1)
+	}
+	defer logCleanup()
+	slog.SetDefault(logger)
+
+	logger.Info("webator starting",
+		slog.String("authStartUrl", cfg.AuthStartURL),
+		slog.Bool("debug", debug),
+		slog.Bool("webview", true),
+	)
+
+	if cfg.AuthDoneURL != "" && cfg.NavigateURL != "" {
+		logger.Warn("webview mode does not support full-auto authentication; manual auth only")
+	}
+
+	logger.Info("opening embedded webview", slog.String("url", cfg.AuthStartURL))
+	if err := webview.Open("webator", cfg.AuthStartURL, cfg.ViewportWidth, cfg.ViewportHeight, true); err != nil {
+		logger.Error("failed to open embedded webview", slog.Any("error", err))
+		os.Exit(1)
+	}
+
+	logger.Info("embedded webview closed")
+	logger.Info("webator exiting")
 }

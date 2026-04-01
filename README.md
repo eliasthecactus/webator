@@ -109,6 +109,14 @@ The browser stays open after navigation. Press **Ctrl+C** or close the browser t
 
 No window is shown. Logs go to `$TMPDIR/browser-automation.log`.
 
+### Webview Mode
+
+```bash
+./webator --webview --auth-start-url "https://login.example.com"
+```
+
+This opens the auth page in an embedded native webview window instead of launching an external browser. Full-auto authentication is not supported in this mode; the user must complete login manually.
+
 ### Kiosk Mode
 
 ```bash
@@ -281,6 +289,7 @@ Most MFA flows (Microsoft, Okta) use step 2. Some older portals present all fiel
 | `--viewport-height` | `1080` | Viewport height in pixels |
 | `--user-agent` | Chrome 124 UA | Browser User-Agent string |
 | `--kiosk` | `false` | Run the browser in kiosk/fullscreen mode |
+| `--webview` | `false` | Render the auth page in an embedded webview instead of using an external browser |
 | `--incognito` | `false` | Open the browser in an incognito/private session |
 | `--disable-context-menu` | `true` | Disable the browser context menu |
 | `--disable-dev-tools` | `true` | Prevent opening developer tools |

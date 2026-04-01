@@ -6,6 +6,7 @@ require (
 	fyne.io/fyne/v2 v2.7.3
 	github.com/chromedp/chromedp v0.9.5
 	github.com/pquerna/otp v1.4.0
+	github.com/webview/webview v0.0.0-20180509070823-016c6ffd99f3
 )
 
 require (

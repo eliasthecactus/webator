@@ -26,6 +26,7 @@
   "user_agent": "",
   "browser_path": "",
   "kiosk": false,
+  "webview": false,
   "incognito": false,
   "disable_context_menu": true,
   "disable_dev_tools": true,
