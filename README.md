@@ -112,10 +112,10 @@ No window is shown. Logs go to `$TMPDIR/browser-automation.log`.
 ### Webview Mode
 
 ```bash
-./webator --webview --auth-start-url "https://login.example.com"
+./webator --webview --debug --auth-start-url "https://login.example.com"
 ```
 
-This opens the auth page in an embedded native webview window instead of launching an external browser. Full-auto authentication is not supported in this mode; the user must complete login manually.
+This opens the auth page in an embedded native webview window instead of launching an external browser. In `--debug` mode, a GUI window is shown with a log box. Full-auto authentication is not supported in this mode; the user must complete login manually.
 
 ### Kiosk Mode
 

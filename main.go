@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"fyne.io/fyne/v2"
 	"github.com/webview/webview"
 )
 
@@ -343,7 +344,75 @@ func runGUI(cfg *Config, debug bool, browserExec string) {
 }
 
 func runWebview(cfg *Config, debug bool) {
-	logger, logCleanup, err := setupLogger(cfg, debug)
+	if debug {
+		gui := NewWebatorGUI(cfg, true)
+		logger := gui.Logger()
+		logCleanup := func() {}
+		defer logCleanup()
+		slog.SetDefault(logger)
+
+		baseCtx, stopSignal := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stopSignal()
+
+		logger.Info("webator starting",
+			slog.String("authStartUrl", cfg.AuthStartURL),
+			slog.Bool("debug", debug),
+			slog.Bool("webview", true),
+		)
+
+		if cfg.AuthDoneURL != "" && cfg.NavigateURL != "" {
+			logger.Warn("webview mode does not support full-auto authentication; manual auth only")
+		}
+
+		logger.Info("opening embedded webview", slog.String("url", cfg.AuthStartURL))
+		w, err := newWebviewWindow(cfg)
+		if err != nil {
+			logger.Error("failed to create embedded webview", slog.Any("error", err))
+			os.Exit(1)
+		}
+		gui.AddCleanup(func() {
+			w.Dispatch(func() {
+				w.Exit()
+			})
+		})
+
+		loopDone := make(chan struct{})
+		go func() {
+			ticker := time.NewTicker(16 * time.Millisecond)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ticker.C:
+					fyne.Do(func() {
+						if !w.Loop(false) {
+							select {
+							case <-loopDone:
+							default:
+								close(loopDone)
+								gui.SetStatus("Embedded webview closed")
+								gui.window.Close()
+							}
+						}
+					})
+				case <-baseCtx.Done():
+					w.Dispatch(func() {
+						w.Exit()
+					})
+					return
+				}
+			}
+		}()
+
+		gui.Run(stopSignal, func() error {
+			gui.SetStatus("Starting embedded webview...")
+			logger.Info("embedded webview running")
+			<-loopDone
+			return nil
+		})
+		return
+	}
+
+	logger, logCleanup, err := setupLogger(cfg, false)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error setting up logger: %v\n", err)
 		os.Exit(1)
@@ -362,11 +431,28 @@ func runWebview(cfg *Config, debug bool) {
 	}
 
 	logger.Info("opening embedded webview", slog.String("url", cfg.AuthStartURL))
-	if err := webview.Open("webator", cfg.AuthStartURL, cfg.ViewportWidth, cfg.ViewportHeight, true); err != nil {
-		logger.Error("failed to open embedded webview", slog.Any("error", err))
+	w, err := newWebviewWindow(cfg)
+	if err != nil {
+		logger.Error("failed to create embedded webview", slog.Any("error", err))
 		os.Exit(1)
 	}
+	w.Run()
 
 	logger.Info("embedded webview closed")
 	logger.Info("webator exiting")
+}
+
+func newWebviewWindow(cfg *Config) (webview.WebView, error) {
+	w := webview.New(webview.Settings{
+		Title:     "webator",
+		URL:       cfg.AuthStartURL,
+		Width:     cfg.ViewportWidth,
+		Height:    cfg.ViewportHeight,
+		Resizable: true,
+		Debug:     false,
+	})
+	if w == nil {
+		return nil, fmt.Errorf("failed to create embedded webview")
+	}
+	return w, nil
 }
