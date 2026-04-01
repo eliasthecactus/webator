@@ -50,8 +50,12 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-dev xorg-dev libgtk-3-dev pkg-config
-          sudo apt-get install -y libwebkit2gtk-4.1-dev || sudo apt-get install -y libwebkit2gtk-4.0-dev
+          sudo apt-get install -y libgl1-mesa-dev xorg-dev libgtk-3-dev pkg-config libwebkit2gtk-4.1-dev
+          WEBKIT_PKGDIR=$(pkg-config --variable pc_path pkg-config | tr ':' '\n' | while read -r dir; do [ -f "$dir/webkit2gtk-4.1.pc" ] && echo "$dir" && break; done)
+          if [ -n "$WEBKIT_PKGDIR" ] && [ ! -f "$WEBKIT_PKGDIR/webkit2gtk-4.0.pc" ]; then
+            echo "Creating pkg-config alias webkit2gtk-4.0.pc -> webkit2gtk-4.1.pc"
+            sudo ln -sf "$WEBKIT_PKGDIR/webkit2gtk-4.1.pc" "$WEBKIT_PKGDIR/webkit2gtk-4.0.pc"
+          fi
       - name: Set up gcc (Windows)
         if: runner.os == 'Windows'
         run: echo "C:\msys64\mingw64\bin" >> $env:GITHUB_PATH
