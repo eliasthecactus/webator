@@ -117,14 +117,6 @@ No window is shown. Logs go to `$TMPDIR/browser-automation.log`.
 
 This enables kiosk-friendly browser options such as fullscreen mode, disabled context menu, disabled dev tools and translation, and touchscreen/pinch restrictions.
 
-### App Mode (RemoteApp / RDS)
-
-```bash
-./webator --app --incognito --auth-start-url "https://login.example.com" --browser-path "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
-```
-
-This keeps kiosk restrictions active but does not force fullscreen, so RemoteApp users can still see their taskbar.
-For backward compatibility, `--kiosk --kiosk-fullscreen=false` still works and behaves the same as `--app`.
 
 ### Debug Mode (verbose stdout logs)
 
@@ -289,8 +281,6 @@ Most MFA flows (Microsoft, Okta) use step 2. Some older portals present all fiel
 | `--viewport-height` | `1080` | Viewport height in pixels |
 | `--user-agent` | Chrome 124 UA | Browser User-Agent string |
 | `--kiosk` | `false` | Run the browser in kiosk/fullscreen mode |
-| `--app` | `false` | Run in locked-down app window mode (non-fullscreen kiosk behavior) |
-| `--kiosk-fullscreen` | `true` | When `--kiosk` is enabled, force fullscreen; set `false` for windowed kiosk (RemoteApp-friendly) |
 | `--incognito` | `false` | Open the browser in an incognito/private session |
 | `--disable-context-menu` | `true` | Disable the browser context menu |
 | `--disable-dev-tools` | `true` | Prevent opening developer tools |

@@ -155,15 +155,10 @@ func launchBrowser(parentCtx context.Context, cfg *Config, browserPath string, l
 	}
 
 	if cfg.Kiosk {
-		if cfg.KioskFullscreen {
-			allocOpts = append(allocOpts, chromedp.Flag("kiosk", true))
-		} else {
-			// Windowed kiosk: keep lockdown flags without forcing fullscreen.
-			allocOpts = append(allocOpts, chromedp.Flag("app", "about:blank"))
-		}
+		allocOpts = append(allocOpts, chromedp.Flag("kiosk", true))
 	}
 
-	if cfg.EdgeKioskType != "" && cfg.Kiosk && cfg.KioskFullscreen && isEdgeExecutable(browserPath) {
+	if cfg.EdgeKioskType != "" && cfg.Kiosk && isEdgeExecutable(browserPath) {
 		allocOpts = append(allocOpts, chromedp.Flag("edge-kiosk-type", cfg.EdgeKioskType))
 	}
 
@@ -174,7 +169,7 @@ func launchBrowser(parentCtx context.Context, cfg *Config, browserPath string, l
 	)
 	if cfg.Headless {
 		allocOpts = append(allocOpts, chromedp.WindowSize(cfg.ViewportWidth, cfg.ViewportHeight))
-	} else if cfg.Kiosk && cfg.KioskFullscreen {
+	} else if cfg.Kiosk {
 		allocOpts = append(allocOpts, chromedp.Flag("start-fullscreen", true))
 	} else {
 		allocOpts = append(allocOpts, chromedp.Flag("start-maximized", true))

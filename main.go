@@ -43,8 +43,6 @@ func main() {
 	viewportHeight := flag.Int("viewport-height", 0, "Browser viewport height in pixels")
 	userAgent := flag.String("user-agent", "", "Browser User-Agent string")
 	kiosk := flag.Bool("kiosk", false, "Run the browser in kiosk mode")
-	kioskFullscreen := flag.Bool("kiosk-fullscreen", true, "Use fullscreen when kiosk mode is enabled")
-	app := flag.Bool("app", false, "Run browser in locked-down app window mode (no fullscreen)")
 	incognito := flag.Bool("incognito", false, "Run the browser in an incognito/private session")
 	disableContextMenu := flag.Bool("disable-context-menu", true, "Disable the browser context menu")
 	disableDevTools := flag.Bool("disable-dev-tools", true, "Prevent opening developer tools")
@@ -146,12 +144,6 @@ func main() {
 	if setFlags["kiosk"] {
 		cfg.Kiosk = *kiosk
 	}
-	if setFlags["kiosk-fullscreen"] {
-		cfg.KioskFullscreen = *kioskFullscreen
-	}
-	if setFlags["app"] {
-		cfg.App = *app
-	}
 	if setFlags["incognito"] {
 		cfg.Incognito = *incognito
 	}
@@ -217,13 +209,6 @@ func main() {
 	}
 	if setFlags["poll-interval-ms"] {
 		cfg.PollIntervalMs = *pollIntervalMs
-	}
-
-	// app mode is the explicit windowed alternative to fullscreen kiosk mode.
-	// Keep compatibility with older "--kiosk --kiosk-fullscreen=false" config/CLI.
-	if cfg.App {
-		cfg.Kiosk = true
-		cfg.KioskFullscreen = false
 	}
 
 	// ── Validate required fields ───────────────────────────────────────────

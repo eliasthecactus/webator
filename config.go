@@ -41,8 +41,6 @@ type Config struct {
 	ViewportHeight              int    `json:"viewport_height"`
 	UserAgent                   string `json:"user_agent"`
 	Kiosk                       bool   `json:"kiosk"`
-	KioskFullscreen             bool   `json:"kiosk_fullscreen"`
-	App                         bool   `json:"app"`
 	Incognito                   bool   `json:"incognito"`
 	DisableContextMenu          bool   `json:"disable_context_menu"`
 	DisableDevTools             bool   `json:"disable_dev_tools"`
@@ -85,8 +83,6 @@ func defaultConfig() Config {
 		ViewportHeight:              1080,
 		UserAgent:                   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
 		Kiosk:                       false,
-		KioskFullscreen:             true,
-		App:                         false,
 		Incognito:                   false,
 		DisableContextMenu:          true,
 		DisableDevTools:             true,
