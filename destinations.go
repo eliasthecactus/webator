@@ -18,10 +18,16 @@ type pickerEntry struct {
 }
 
 // filterDestinations returns the subset of dests whose Tag (or any child URL
-// Tag) is present in tags. When tags is empty all destinations are returned.
+// Tag) is present in tags. When tags is empty, or when any tag equals "all",
+// all destinations are returned unchanged.
 func filterDestinations(dests []Destination, tags []string) []Destination {
 	if len(tags) == 0 {
 		return dests
+	}
+	for _, t := range tags {
+		if t == "all" {
+			return dests
+		}
 	}
 	tagSet := make(map[string]bool, len(tags))
 	for _, t := range tags {

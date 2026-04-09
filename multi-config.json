@@ -45,7 +45,7 @@
     },
 
     {
-      "name": "IPAM (phpIPAM)",
+      "name": "IPAM",
       "tag": "ipam",
 
       "username_selector": "#ipamusername",

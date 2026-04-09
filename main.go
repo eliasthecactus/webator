@@ -96,7 +96,13 @@ func main() {
 	// ── Load config file (optional) ────────────────────────────────────────
 	cfg, err := loadConfig(*configPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error loading config: %v\n", err)
+		msg := fmt.Sprintf("error loading config: %v", err)
+		fmt.Fprintln(os.Stderr, msg)
+		// Show a dialog when likely running in GUI mode (no explicit --headless
+		// flag set, or the flag was explicitly set to false).
+		if !setFlags["headless"] || !*headless {
+			ShowFatalErrorDialog(msg)
+		}
 		os.Exit(1)
 	}
 
@@ -241,7 +247,11 @@ func main() {
 
 	// ── Validate required fields ───────────────────────────────────────────
 	if cfg.AuthStartURL == "" && len(cfg.Destinations) == 0 {
-		fmt.Fprintln(os.Stderr, "error: --auth-start-url is required, or define destinations in the config file")
+		msg := "error: --auth-start-url is required, or define destinations in the config file"
+		fmt.Fprintln(os.Stderr, msg)
+		if !cfg.Headless {
+			ShowFatalErrorDialog(msg)
+		}
 		os.Exit(1)
 	}
 
@@ -256,7 +266,11 @@ func main() {
 	// ── Find browser ───────────────────────────────────────────────────────
 	browserExec, err := findBrowser(&cfg, slog.Default())
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		msg := fmt.Sprintf("error: %v", err)
+		fmt.Fprintln(os.Stderr, msg)
+		if !cfg.Headless {
+			ShowFatalErrorDialog(msg)
+		}
 		os.Exit(1)
 	}
 
@@ -343,8 +357,7 @@ func runGUI(cfg *Config, debug bool, browserExec string) {
 		var err error
 		logger, logCleanup, err = setupLogger(cfg, false)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error setting up logger: %v\n", err)
-			os.Exit(1)
+			gui.ShowStartupError(fmt.Sprintf("failed to set up logger: %v", err))
 		}
 	}
 	defer logCleanup()

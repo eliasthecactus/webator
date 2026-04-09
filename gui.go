@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"fmt"
 	"log/slog"
+	"os"
 	"strings"
 	"sync"
 
@@ -110,6 +111,47 @@ func NewWebatorGUI(cfg *Config, debug bool) *WebatorGUI {
 	return g
 }
 
+// ShowFatalErrorDialog creates a minimal Fyne application to display a fatal
+// error to the user before the main GUI is started (e.g. bad config, missing
+// browser). It blocks until the user dismisses the window, then exits with
+// code 1.  Must NOT be called from within runGUI — use ShowStartupError there.
+func ShowFatalErrorDialog(msg string) {
+	a := app.NewWithID("ch.eliasthecactus.webator.err")
+	icon := fyne.NewStaticResource("icon.png", iconBytes)
+	a.SetIcon(icon)
+	w := a.NewWindow("webator \u2014 Error")
+	w.SetIcon(icon)
+	lbl := widget.NewLabel(msg)
+	lbl.Wrapping = fyne.TextWrapWord
+	btn := widget.NewButton("OK", func() { a.Quit() })
+	btn.Importance = widget.DangerImportance
+	w.SetContent(container.NewPadded(container.NewVBox(lbl, widget.NewSeparator(), btn)))
+	w.Resize(fyne.NewSize(440, 160))
+	w.SetFixedSize(true)
+	w.SetOnClosed(func() { os.Exit(1) })
+	w.ShowAndRun()
+	os.Exit(1)
+}
+
+// ShowStartupError displays the already-created webator window with a fatal
+// error message and blocks until the user closes it, then exits with code 1.
+// Use this for errors that occur inside runGUI before gui.Run() is called.
+func (g *WebatorGUI) ShowStartupError(msg string) {
+	lbl := widget.NewLabel(msg)
+	lbl.Wrapping = fyne.TextWrapWord
+	g.window.SetTitle("webator \u2014 Error")
+	g.window.SetContent(container.NewPadded(container.NewVBox(
+		widget.NewLabelWithStyle("Fatal error", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		widget.NewSeparator(),
+		lbl,
+	)))
+	g.window.Resize(fyne.NewSize(440, 200))
+	g.window.SetFixedSize(true)
+	g.window.SetOnClosed(func() { os.Exit(1) })
+	g.window.ShowAndRun()
+	os.Exit(1)
+}
+
 // UpdateInfoLabels refreshes the Auth URL and User fields in the info form.
 // Call this after applyDestination so the GUI reflects the selected destination.
 func (g *WebatorGUI) UpdateInfoLabels(authURL, user string) {
@@ -181,7 +223,7 @@ func (g *WebatorGUI) WatchBrowser(browserCtx, baseCtx context.Context) {
 		if g.debugMode {
 			g.SetStatus("Session closed")
 		} else {
-			fyne.Do(func() { g.window.Close() })
+			fyne.Do(func() { g.fyneApp.Quit() })
 		}
 	}()
 }
