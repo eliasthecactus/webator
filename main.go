@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -16,7 +17,21 @@ import (
 	"github.com/webview/webview"
 )
 
+// showError prints msg to stderr and, on Windows or when guiMode is true,
+// shows a blocking Fyne dialog before exiting with code 1. Never returns.
+func showError(msg string, guiMode bool) {
+	fmt.Fprintln(os.Stderr, msg)
+	if guiMode || runtime.GOOS == "windows" {
+		ShowFatalErrorDialog(msg) // internally calls os.Exit(1)
+	}
+	os.Exit(1)
+}
+
 func main() {
+	// Use ContinueOnError so we can catch bad flags and show a dialog instead
+	// of writing to stderr (invisible on Windows GUI builds) and calling os.Exit.
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+
 	// ── Flag definitions ───────────────────────────────────────────────────
 	configPath := flag.String("config", "", "Path to JSON config file (optional)")
 	debug := flag.Bool("debug", false, "Enable debug mode: verbose logging to stdout, browser visible")
@@ -48,6 +63,7 @@ func main() {
 	viewportHeight := flag.Int("viewport-height", 0, "Browser viewport height in pixels")
 	userAgent := flag.String("user-agent", "", "Browser User-Agent string")
 	kiosk := flag.Bool("kiosk", false, "Run the browser in kiosk mode")
+	appMode := flag.Bool("app-mode", true, "Open the browser in app mode: no address bar, tabs, or toolbar (--app=URL). Default: true")
 	webviewFlag := flag.Bool("webview", false, "Render the auth page in an embedded webview instead of launching an external browser")
 	webviewTitle := flag.String("webview-title", "", "Title for the embedded webview window")
 	incognito := flag.Bool("incognito", false, "Run the browser in an incognito/private session")
@@ -85,7 +101,13 @@ func main() {
 	// config file are presented in the picker. Comma-separated list of tags.
 	destinationTagsArg := flag.String("destination-tags", "", "Comma-separated tags to restrict the destination picker (e.g. 'zabbix,ipam')")
 
-	flag.Parse()
+	if err := flag.CommandLine.Parse(os.Args[1:]); err != nil {
+		if err == flag.ErrHelp {
+			os.Exit(0)
+		}
+		// Bad flag — always show a dialog (interactive invocation).
+		showError(fmt.Sprintf("invalid arguments: %v", err), true)
+	}
 
 	// Track which flags were explicitly set on the command line.
 	setFlags := make(map[string]bool)
@@ -96,14 +118,7 @@ func main() {
 	// ── Load config file (optional) ────────────────────────────────────────
 	cfg, err := loadConfig(*configPath)
 	if err != nil {
-		msg := fmt.Sprintf("error loading config: %v", err)
-		fmt.Fprintln(os.Stderr, msg)
-		// Show a dialog when likely running in GUI mode (no explicit --headless
-		// flag set, or the flag was explicitly set to false).
-		if !setFlags["headless"] || !*headless {
-			ShowFatalErrorDialog(msg)
-		}
-		os.Exit(1)
+		showError(fmt.Sprintf("error loading config: %v", err), !setFlags["headless"] || !*headless)
 	}
 
 	// ── Apply explicit CLI overrides ───────────────────────────────────────
@@ -160,6 +175,9 @@ func main() {
 	}
 	if setFlags["kiosk"] {
 		cfg.Kiosk = *kiosk
+	}
+	if setFlags["app-mode"] {
+		cfg.AppMode = *appMode
 	}
 	if setFlags["webview"] {
 		cfg.Webview = *webviewFlag
@@ -247,12 +265,7 @@ func main() {
 
 	// ── Validate required fields ───────────────────────────────────────────
 	if cfg.AuthStartURL == "" && len(cfg.Destinations) == 0 {
-		msg := "error: --auth-start-url is required, or define destinations in the config file"
-		fmt.Fprintln(os.Stderr, msg)
-		if !cfg.Headless {
-			ShowFatalErrorDialog(msg)
-		}
-		os.Exit(1)
+		showError("error: --auth-start-url is required, or define destinations in the config file", !cfg.Headless)
 	}
 
 	if cfg.Webview {
@@ -266,12 +279,7 @@ func main() {
 	// ── Find browser ───────────────────────────────────────────────────────
 	browserExec, err := findBrowser(&cfg, slog.Default())
 	if err != nil {
-		msg := fmt.Sprintf("error: %v", err)
-		fmt.Fprintln(os.Stderr, msg)
-		if !cfg.Headless {
-			ShowFatalErrorDialog(msg)
-		}
-		os.Exit(1)
+		showError(fmt.Sprintf("error: %v", err), !cfg.Headless)
 	}
 
 	if cfg.Headless {

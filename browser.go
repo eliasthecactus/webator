@@ -158,6 +158,12 @@ func launchBrowser(parentCtx context.Context, cfg *Config, browserPath string, l
 		allocOpts = append(allocOpts, chromedp.Flag("kiosk", true))
 	}
 
+	// --app=URL strips all browser chrome (address bar, tabs, toolbar) and
+	// opens the page in a minimal app-style window. Only effective when not headless.
+	if cfg.AppMode && !cfg.Headless && cfg.AuthStartURL != "" {
+		allocOpts = append(allocOpts, chromedp.Flag("app", cfg.AuthStartURL))
+	}
+
 	if cfg.EdgeKioskType != "" && cfg.Kiosk && isEdgeExecutable(browserPath) {
 		allocOpts = append(allocOpts, chromedp.Flag("edge-kiosk-type", cfg.EdgeKioskType))
 	}
@@ -171,7 +177,8 @@ func launchBrowser(parentCtx context.Context, cfg *Config, browserPath string, l
 		allocOpts = append(allocOpts, chromedp.WindowSize(cfg.ViewportWidth, cfg.ViewportHeight))
 	} else if cfg.Kiosk {
 		allocOpts = append(allocOpts, chromedp.Flag("start-fullscreen", true))
-	} else {
+	} else if !cfg.AppMode {
+		// App mode manages its own window size; don't force start-maximized.
 		allocOpts = append(allocOpts, chromedp.Flag("start-maximized", true))
 	}
 

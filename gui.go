@@ -223,7 +223,11 @@ func (g *WebatorGUI) WatchBrowser(browserCtx, baseCtx context.Context) {
 		if g.debugMode {
 			g.SetStatus("Session closed")
 		} else {
-			fyne.Do(func() { g.fyneApp.Quit() })
+			// App.Quit() is goroutine-safe in Fyne — no fyne.Do wrapper needed.
+			// Wrapping it in fyne.Do would try to run synchronously on the main
+			// goroutine while Quit() posts back to the same loop, causing it to
+			// be silently swallowed.
+			g.fyneApp.Quit()
 		}
 	}()
 }

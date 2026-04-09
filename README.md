@@ -393,6 +393,7 @@ Most MFA flows (Microsoft, Okta) use step 2. Some older portals present all fiel
 | `--viewport-height` | `1080` | Viewport height in pixels |
 | `--user-agent` | Chrome 124 UA | Browser User-Agent string |
 | `--kiosk` | `false` | Run the browser in kiosk/fullscreen mode |
+| `--app-mode` | `true` | Open the browser in app mode: no address bar, tabs, or toolbar. Uses Chrome's `--app=URL` under the hood. |
 | `--webview` | `false` | Render the auth page in an embedded webview instead of using an external browser |
 | `--webview-title` | *(none)* | Explicit title for the embedded webview window |
 | `--incognito` | `false` | Open the browser in an incognito/private session |
