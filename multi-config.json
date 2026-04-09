@@ -1,0 +1,117 @@
+{
+  "comment": "Root-level credentials are the global default for every destination that does not override them.",
+  "username_value": "admin",
+  "password_value": "s3cret",
+  "timeout": 60,
+  "retry_count": 3,
+  "retry_delay_ms": 1500,
+
+  "destinations": [
+
+    {
+      "name": "ZABBIX",
+      "tag": "zabbix",
+
+      "comment_category": "Category-level selectors apply to every Zabbix URL unless overridden at URL level.",
+      "username_selector": "#name",
+      "password_selector": "#password",
+      "submit_selector":   "button[type=submit]",
+      "done_selector":     ".header-title",
+
+      "urls": [
+        {
+          "label":          "Zabbix Production",
+          "tag":            "zabbix-prod",
+          "auth_start_url": "https://zabbix.prod.example.com/zabbix/",
+          "auth_done_url":  "https://zabbix.prod.example.com/zabbix/zabbix.php",
+          "navigate_url":   "https://zabbix.prod.example.com/zabbix/zabbix.php?action=dashboard.view"
+        },
+        {
+          "label":          "Zabbix Staging",
+          "tag":            "zabbix-staging",
+          "auth_start_url": "https://zabbix.staging.example.com/zabbix/",
+          "auth_done_url":  "https://zabbix.staging.example.com/zabbix/zabbix.php",
+          "navigate_url":   "https://zabbix.staging.example.com/zabbix/zabbix.php?action=dashboard.view",
+
+          "comment_url": "Staging uses different HTML field names — override selectors at URL level.",
+          "username_selector": "#f_user_name",
+          "password_selector": "#f_user_pw",
+          "submit_selector":   "#formSubmit > input[type=submit]",
+
+          "comment_creds": "Staging has its own password; root username_value ('admin') is still inherited.",
+          "password_value": "staging-s3cret"
+        }
+      ]
+    },
+
+    {
+      "name": "IPAM (phpIPAM)",
+      "tag": "ipam",
+
+      "username_selector": "#ipamusername",
+      "password_selector": "#ipampassword",
+      "submit_selector":   "input[type=submit]",
+
+      "urls": [
+        {
+          "label":          "IPAM Production",
+          "tag":            "ipam-prod",
+          "auth_start_url": "https://ipam.example.com/app/login/",
+          "auth_done_url":  "https://ipam.example.com/app/",
+          "navigate_url":   "https://ipam.example.com/app/"
+        },
+        {
+          "label":          "IPAM Dev",
+          "tag":            "ipam-dev",
+          "auth_start_url": "https://ipam-dev.example.com/app/login/",
+          "auth_done_url":  "https://ipam-dev.example.com/app/",
+          "navigate_url":   "https://ipam-dev.example.com/app/",
+
+          "comment_creds": "Dev environment uses dedicated credentials instead of root defaults.",
+          "username_value": "devuser",
+          "password_value": "devpassword"
+        }
+      ]
+    },
+
+    {
+      "name": "Microsoft 365",
+      "tag": "m365",
+
+      "comment_totp": "TOTP is configured at category level and applies to all M365 URLs.",
+      "username_selector":  "input[type='email']",
+      "password_selector":  "input[type='password']",
+      "submit_selector":    "input[type='submit']",
+      "totp_secret":        "JBSWY3DPEHPK3PXP",
+      "totp_selector":      "input[name='otc']",
+      "totp_step":          2,
+      "wait_after_submit_ms": 2000,
+      "done_selector":      "[data-testid='user-menu']",
+
+      "urls": [
+        {
+          "label":          "Office Portal",
+          "tag":            "m365-office",
+          "auth_start_url": "https://login.microsoftonline.com",
+          "auth_done_url":  "https://portal.office.com",
+          "navigate_url":   "https://portal.office.com",
+
+          "comment_creds": "Per-URL username; password is inherited from root.",
+          "username_value": "alice@corp.example.com"
+        },
+        {
+          "label":          "Azure Portal",
+          "tag":            "m365-azure",
+          "auth_start_url": "https://login.microsoftonline.com",
+          "auth_done_url":  "https://portal.azure.com",
+          "navigate_url":   "https://portal.azure.com/#home",
+
+          "comment_creds": "Different account for Azure.",
+          "username_value": "bob@corp.example.com",
+          "password_value": "AzureP@ss!"
+        }
+      ]
+    }
+
+  ]
+}

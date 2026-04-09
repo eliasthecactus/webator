@@ -1,5 +1,5 @@
 {
-  "auth_start_url": "",
+  "auth_start_url": "https://example.com/login",
   "auth_done_url": "",
   "navigate_url": "",
   "username_selector": "",

@@ -26,13 +26,18 @@ func setupLogger(cfg *Config, debug bool) (*slog.Logger, func(), error) {
 	}
 
 	// Ensure parent directory exists.
-	if err := os.MkdirAll(filepath.Dir(cfg.LogFile), 0o755); err != nil {
+	logPath := cfg.LogFile
+	if logPath == "" {
+		logPath = filepath.Join(os.TempDir(), "browser-automation.log")
+	}
+
+	if err := os.MkdirAll(filepath.Dir(logPath), 0o755); err != nil {
 		return nil, nil, fmt.Errorf("create log dir: %w", err)
 	}
 
-	f, err := os.OpenFile(cfg.LogFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
-		return nil, nil, fmt.Errorf("open log file %s: %w", cfg.LogFile, err)
+		return nil, nil, fmt.Errorf("open log file %s: %w", logPath, err)
 	}
 
 	level := parseLogLevel(cfg.LogLevel)

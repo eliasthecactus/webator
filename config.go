@@ -12,6 +12,45 @@ type WaitOverride struct {
 	TimeoutMs int `json:"timeout_ms"`
 }
 
+// DestinationURL represents a single navigable URL inside a Destination category.
+// Fields left empty fall back to the enclosing Destination, then to the root Config.
+type DestinationURL struct {
+	Label             string `json:"label"`
+	Tag               string `json:"tag"`
+	AuthStartURL      string `json:"auth_start_url"`
+	AuthDoneURL       string `json:"auth_done_url"`
+	NavigateURL       string `json:"navigate_url"`
+	UsernameSelector  string `json:"username_selector"`
+	UsernameValue     string `json:"username_value"`
+	PasswordSelector  string `json:"password_selector"`
+	PasswordValue     string `json:"password_value"`
+	TOTPSecret        string `json:"totp_secret"`
+	TOTPSelector      string `json:"totp_selector"`
+	TOTPStep          int    `json:"totp_step"`
+	SubmitSelector    string `json:"submit_selector"`
+	DoneSelector      string `json:"done_selector"`
+	WaitAfterSubmitMs int    `json:"wait_after_submit_ms"`
+}
+
+// Destination groups one or more URLs under a named category.
+// Selector/credential fields here apply to every URL in the group unless
+// overridden at the DestinationURL level.
+type Destination struct {
+	Name              string           `json:"name"`
+	Tag               string           `json:"tag"`
+	UsernameSelector  string           `json:"username_selector"`
+	UsernameValue     string           `json:"username_value"`
+	PasswordSelector  string           `json:"password_selector"`
+	PasswordValue     string           `json:"password_value"`
+	TOTPSecret        string           `json:"totp_secret"`
+	TOTPSelector      string           `json:"totp_selector"`
+	TOTPStep          int              `json:"totp_step"`
+	SubmitSelector    string           `json:"submit_selector"`
+	DoneSelector      string           `json:"done_selector"`
+	WaitAfterSubmitMs int              `json:"wait_after_submit_ms"`
+	URLs              []DestinationURL `json:"urls"`
+}
+
 // Config holds all configuration for the automation run.
 type Config struct {
 	// Authentication URLs
@@ -74,6 +113,11 @@ type Config struct {
 	WaitAfterSubmitMs int                     `json:"wait_after_submit_ms"`
 	PollIntervalMs    int                     `json:"poll_interval_ms"`
 	WaitOverrides     map[string]WaitOverride `json:"wait_overrides"`
+
+	// Multi-destination mode — when set, the user picks a destination before
+	// the auth flow starts. AuthStartURL (and the selector/credential fields)
+	// are populated from the chosen destination, overriding root-level values.
+	Destinations []Destination `json:"destinations"`
 }
 
 // defaultConfig returns a Config populated with safe, sensible defaults.

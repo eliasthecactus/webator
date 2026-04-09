@@ -27,6 +27,13 @@ type WebatorGUI struct {
 	logScroll   *container.Scroll
 	debugMode   bool
 
+	statusContent fyne.CanvasObject // the normal status/spinner view
+	statusWidth   float32
+	statusHeight  float32
+
+	authURLLabel *widget.Label // info form labels — updated after destination selection
+	userLabel    *widget.Label
+
 	mu       sync.Mutex
 	logLines []string
 	cleanups []func()
@@ -51,9 +58,15 @@ func NewWebatorGUI(cfg *Config, debug bool) *WebatorGUI {
 
 	statusRow := container.NewHBox(g.activity, g.statusLabel)
 
+	authURLDisplay := cfg.AuthStartURL
+	if authURLDisplay == "" && len(cfg.Destinations) > 0 {
+		authURLDisplay = "— select destination —"
+	}
+	g.authURLLabel = widget.NewLabel(truncate(authURLDisplay, 52))
+	g.userLabel = widget.NewLabel(cfg.UsernameValue)
 	infoForm := widget.NewForm(
-		widget.NewFormItem("Auth URL", widget.NewLabel(truncate(cfg.AuthStartURL, 52))),
-		widget.NewFormItem("User", widget.NewLabel(cfg.UsernameValue)),
+		widget.NewFormItem("Auth URL", g.authURLLabel),
+		widget.NewFormItem("User", g.userLabel),
 	)
 
 	var content fyne.CanvasObject
@@ -80,16 +93,32 @@ func NewWebatorGUI(cfg *Config, debug bool) *WebatorGUI {
 
 	w := a.NewWindow("webator")
 	w.SetIcon(icon)
-	w.SetContent(container.NewPadded(content))
+	g.statusContent = container.NewPadded(content)
+	w.SetContent(g.statusContent)
 	if debug {
-		w.Resize(fyne.NewSize(620, 460))
+		g.statusWidth = 620
+		g.statusHeight = 460
+		w.Resize(fyne.NewSize(g.statusWidth, g.statusHeight))
 	} else {
-		w.Resize(fyne.NewSize(440, 170))
+		g.statusWidth = 440
+		g.statusHeight = 170
+		w.Resize(fyne.NewSize(g.statusWidth, g.statusHeight))
 		w.SetFixedSize(true)
 	}
 
 	g.window = w
 	return g
+}
+
+// UpdateInfoLabels refreshes the Auth URL and User fields in the info form.
+// Call this after applyDestination so the GUI reflects the selected destination.
+func (g *WebatorGUI) UpdateInfoLabels(authURL, user string) {
+	fyne.Do(func() {
+		g.authURLLabel.SetText(truncate(authURL, 52))
+		if user != "" {
+			g.userLabel.SetText(user)
+		}
+	})
 }
 
 // SetStatus updates the status label safely from any goroutine.
@@ -199,6 +228,87 @@ func (g *WebatorGUI) Run(stopSignal context.CancelFunc, authFn func() error) {
 	}()
 
 	g.fyneApp.Run()
+}
+
+// ShowDestinationPicker replaces the window content with an inline destination
+// list so the user can pick a target without a constrained dialog overlay.
+// Category headers are shown as bold uppercase separators; URL entries are
+// full-width buttons. After selection the window snaps back to the status view.
+func (g *WebatorGUI) ShowDestinationPicker(entries []pickerEntry) (DestinationURL, *Destination) {
+	ch := make(chan pickerEntry, 1)
+
+	fyne.Do(func() {
+		const entryH = float32(44)
+		const headerH = float32(42)
+
+		naturalH := float32(0)
+		var rows []fyne.CanvasObject
+
+		for _, e := range entries {
+			e := e
+			if e.isHeader {
+				naturalH += headerH
+				// Visually distinct category heading: separator line + uppercase bold label.
+				lbl := widget.NewLabelWithStyle(
+					strings.ToUpper(e.label),
+					fyne.TextAlignLeading,
+					fyne.TextStyle{Bold: true},
+				)
+				rows = append(rows, widget.NewSeparator(), lbl)
+			} else {
+				naturalH += entryH
+				btn := widget.NewButton(e.label, func() {
+					// Restore the status content before signalling.
+					g.window.SetContent(g.statusContent)
+					if !g.debugMode {
+						g.window.SetFixedSize(true)
+					}
+					g.window.Resize(fyne.NewSize(g.statusWidth, g.statusHeight))
+					ch <- e
+				})
+				btn.Alignment = widget.ButtonAlignLeading
+				rows = append(rows, btn)
+			}
+		}
+
+		// Cap display height; add scroll only when content overflows.
+		const maxH = float32(480)
+		list := container.NewVBox(rows...)
+		var listWidget fyne.CanvasObject
+		if naturalH > maxH {
+			sc := container.NewVScroll(list)
+			sc.SetMinSize(fyne.NewSize(0, maxH))
+			listWidget = sc
+		} else {
+			listWidget = list
+		}
+
+		title := widget.NewLabelWithStyle(
+			"Select Destination",
+			fyne.TextAlignCenter,
+			fyne.TextStyle{Bold: true},
+		)
+		pickerContent := container.NewPadded(
+			container.NewVBox(title, widget.NewSeparator(), listWidget),
+		)
+
+		// Window width: at least as wide as the status view.
+		pickerW := g.statusWidth
+		if pickerW < 460 {
+			pickerW = 460
+		}
+		dispH := naturalH + 60 // account for title + separators + padding
+		if dispH > maxH+60 {
+			dispH = maxH + 60
+		}
+
+		g.window.SetFixedSize(false)
+		g.window.SetContent(pickerContent)
+		g.window.Resize(fyne.NewSize(pickerW, dispH))
+	})
+
+	chosen := <-ch
+	return chosen.url, chosen.parent
 }
 
 // truncate shortens s to maxLen runes, appending "…" if trimmed.

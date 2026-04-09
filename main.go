@@ -5,14 +5,15 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"fyne.io/fyne/v2"
 	"github.com/webview/webview"
-	"net/url"
 )
 
 func main() {
@@ -79,6 +80,10 @@ func main() {
 	// Wait tuning flags
 	waitAfterSubmitMs := flag.Int("wait-after-submit-ms", 0, "Milliseconds to wait after clicking submit")
 	pollIntervalMs := flag.Int("poll-interval-ms", 0, "Milliseconds between element visibility polls (default 250)")
+
+	// Destination tag filter — restricts which destinations defined in the
+	// config file are presented in the picker. Comma-separated list of tags.
+	destinationTagsArg := flag.String("destination-tags", "", "Comma-separated tags to restrict the destination picker (e.g. 'zabbix,ipam')")
 
 	flag.Parse()
 
@@ -223,9 +228,20 @@ func main() {
 		cfg.PollIntervalMs = *pollIntervalMs
 	}
 
+	// ── Apply destination tag filter ───────────────────────────────────────
+	var tagsFilter []string
+	if setFlags["destination-tags"] {
+		for _, t := range strings.Split(*destinationTagsArg, ",") {
+			if t = strings.TrimSpace(t); t != "" {
+				tagsFilter = append(tagsFilter, t)
+			}
+		}
+	}
+	cfg.Destinations = filterDestinations(cfg.Destinations, tagsFilter)
+
 	// ── Validate required fields ───────────────────────────────────────────
-	if cfg.AuthStartURL == "" {
-		fmt.Fprintln(os.Stderr, "error: --auth-start-url is required (or set auth_start_url in config file)")
+	if cfg.AuthStartURL == "" && len(cfg.Destinations) == 0 {
+		fmt.Fprintln(os.Stderr, "error: --auth-start-url is required, or define destinations in the config file")
 		os.Exit(1)
 	}
 
@@ -252,6 +268,25 @@ func main() {
 }
 
 func runHeadless(cfg *Config, debug bool, browserExec string) {
+	// Destination selection (headless: numbered stdout/stdin menu).
+	if len(cfg.Destinations) > 0 {
+		entries := buildPickerEntries(cfg.Destinations)
+		var chosen DestinationURL
+		var parent *Destination
+		if e, ok := singleSelectableEntry(entries); ok {
+			// Only one selectable entry — skip the interactive prompt.
+			chosen, parent = e.url, e.parent
+		} else {
+			var err error
+			chosen, parent, err = selectDestinationHeadless(entries)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error: destination selection: %v\n", err)
+				os.Exit(1)
+			}
+		}
+		applyDestination(cfg, parent, chosen)
+	}
+
 	logger, logCleanup, err := setupLogger(cfg, debug)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error setting up logger: %v\n", err)
@@ -325,6 +360,21 @@ func runGUI(cfg *Config, debug bool, browserExec string) {
 	defer stopSignal()
 
 	gui.Run(stopSignal, func() error {
+		// Destination selection (GUI: Fyne picker or auto-select).
+		if len(cfg.Destinations) > 0 {
+			entries := buildPickerEntries(cfg.Destinations)
+			var chosen DestinationURL
+			var parent *Destination
+			if e, ok := singleSelectableEntry(entries); ok {
+				// Only one selectable entry — skip the picker.
+				chosen, parent = e.url, e.parent
+			} else {
+				chosen, parent = gui.ShowDestinationPicker(entries)
+			}
+			applyDestination(cfg, parent, chosen)
+			gui.UpdateInfoLabels(cfg.AuthStartURL, cfg.UsernameValue)
+		}
+
 		gui.SetStatus("Starting browser...")
 
 		browserCtx, cancelBrowser, err := launchBrowser(baseCtx, cfg, browserExec, logger)

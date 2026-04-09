@@ -256,6 +256,106 @@ submit automatically.
 
 ---
 
+## Multi-Destination Mode
+
+When you need webator to authenticate against several different systems and choose the target at launch time, define a `destinations` list in your config file. A Fyne GUI picker (or a numbered stdin prompt in `--headless` mode) appears before the browser starts.
+
+If `--destination-tags` narrows the list to exactly **one** selectable URL, the picker is skipped entirely and that URL opens directly — useful for scripted invocations.
+
+### Config structure
+
+```json
+{
+  "username_value": "global-user",
+  "password_value": "global-pass",
+  "destinations": [
+    {
+      "name": "My App",
+      "tag":  "myapp",
+      "username_selector":    "#user",
+      "password_selector":    "#pass",
+      "submit_selector":      "button[type=submit]",
+      "totp_secret":          "BASE32TOTPSECRET",
+      "totp_selector":        "#otp",
+      "totp_step":            2,
+      "wait_after_submit_ms": 1000,
+      "done_selector":        "#dashboard",
+      "urls": [
+        {
+          "label":          "Production",
+          "tag":            "myapp-prod",
+          "auth_start_url": "https://prod.example.com",
+          "auth_done_url":  "https://prod.example.com/home",
+          "navigate_url":   "https://prod.example.com/home",
+          "username_value": "prod-admin",
+          "password_value": "prod-secret"
+        }
+      ]
+    }
+  ]
+}
+```
+
+See [`multi-config.json`](./multi-config.json) for a full annotated example covering Zabbix, phpIPAM, and Microsoft 365 with per-category TOTP.
+
+### Field precedence
+
+Fields are merged in the following order — the highest level that provides a non-empty value wins:
+
+```
+CLI flag  >  URL-level  >  Category-level  >  Root Config
+```
+
+| Field | Root config | Category (`destinations[]`) | URL (`destinations[].urls[]`) |
+|-------|:-----------:|:---------------------------:|:-----------------------------:|
+| `username_selector`   | ✓ | ✓ | ✓ |
+| `username_value`      | ✓ | ✓ | ✓ |
+| `password_selector`   | ✓ | ✓ | ✓ |
+| `password_value`      | ✓ | ✓ | ✓ |
+| `submit_selector`     | ✓ | ✓ | ✓ |
+| `done_selector`       | ✓ | ✓ | ✓ |
+| `totp_secret`         | ✓ | ✓ | ✓ |
+| `totp_selector`       | ✓ | ✓ | ✓ |
+| `totp_step`           | ✓ | ✓ | ✓ |
+| `wait_after_submit_ms`| ✓ | ✓ | ✓ |
+| `auth_start_url`      | ✓ | — | ✓ |
+| `auth_done_url`       | ✓ | — | ✓ |
+| `navigate_url`        | ✓ | — | ✓ |
+
+> **CLI flags** (e.g. `--username-value`) override everything, including per-destination values. Use them to inject secrets at runtime without storing them in the config file.
+
+### Tagging and filtering
+
+Each category and URL can carry a `tag` string. The `--destination-tags` flag accepts a comma-separated list of tags to restrict what appears in the picker:
+
+```bash
+# Show every destination (no filter)
+./webator --config multi-config.json
+
+# Show only Zabbix entries in the picker
+./webator --config multi-config.json --destination-tags "zabbix"
+
+# Open Zabbix Prod immediately — single match, picker is skipped
+./webator --config multi-config.json --destination-tags "zabbix-prod"
+
+# Show two specific URLs in the picker
+./webator --config multi-config.json --destination-tags "zabbix-prod,ipam-dev"
+```
+
+A category tag matches **all** of its child URLs. A URL tag matches only that one URL.
+
+### Injecting credentials at runtime
+
+```bash
+./webator --config multi-config.json \
+  --username-value "alice" \
+  --password-value "s3cret"
+```
+
+Root-level `username_value` / `password_value` apply globally to every destination that does not override them at category or URL level.
+
+---
+
 ## TOTP: Step 1 vs Step 2
 
 `totp_step` controls **when** the TOTP code is entered relative to the main submit click.
@@ -317,6 +417,7 @@ Most MFA flows (Microsoft, Okta) use step 2. Some older portals present all fiel
 | `--log-file` | `$TMPDIR/browser-automation.log` | Path to the JSON log file |
 | `--wait-after-submit-ms` | `0` | Extra wait in ms after clicking submit |
 | `--poll-interval-ms` | `250` | Polling interval for element visibility checks |
+| `--destination-tags` | *(none)* | Comma-separated tags to restrict the destination picker (e.g. `zabbix,ipam-prod`). If the filter yields a single URL, the picker is skipped and that URL opens directly. |
 
 ### Selector syntax
 
