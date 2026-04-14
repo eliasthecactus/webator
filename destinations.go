@@ -25,25 +25,25 @@ func filterDestinations(dests []Destination, tags []string) []Destination {
 		return dests
 	}
 	for _, t := range tags {
-		if t == "all" {
+		if strings.ToLower(t) == "all" {
 			return dests
 		}
 	}
 	tagSet := make(map[string]bool, len(tags))
 	for _, t := range tags {
-		tagSet[t] = true
+		tagSet[strings.ToLower(t)] = true
 	}
 	var result []Destination
 	for _, d := range dests {
 		// Category tag matches → include the whole category.
-		if d.Tag != "" && tagSet[d.Tag] {
+		if d.Tag != "" && tagSet[strings.ToLower(d.Tag)] {
 			result = append(result, d)
 			continue
 		}
 		// Otherwise keep only the URL children whose tag matches.
 		var matched []DestinationURL
 		for _, u := range d.URLs {
-			if u.Tag != "" && tagSet[u.Tag] {
+			if u.Tag != "" && tagSet[strings.ToLower(u.Tag)] {
 				matched = append(matched, u)
 			}
 		}
