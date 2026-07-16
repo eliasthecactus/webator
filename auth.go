@@ -212,12 +212,17 @@ func loginOnce(ctx context.Context, cfg *Config, logger *slog.Logger, mode opera
 		if err := fillTOTP(ctx, cfg, logger, waitOpts); err != nil {
 			return err
 		}
-		// Click submit again after filling TOTP.
-		if cfg.SubmitSelector != "" {
-			rsSubmit := resolveSelector(cfg.SubmitSelector, logger)
+		// Prefer a TOTP-specific submit selector for step 2, falling back to
+		// the main submit selector for existing configs.
+		totpSubmitSelector := cfg.TOTPSubmitSelector
+		if totpSubmitSelector == "" {
+			totpSubmitSelector = cfg.SubmitSelector
+		}
+		if totpSubmitSelector != "" {
+			rsSubmit := resolveSelector(totpSubmitSelector, logger)
 			logger.Info("clicking submit after TOTP")
 			if err := chromedp.Run(ctx,
-				chromedp.Click(cfg.SubmitSelector, rsSubmit.byOption),
+				chromedp.Click(totpSubmitSelector, rsSubmit.byOption),
 			); err != nil {
 				return fmt.Errorf("click submit after TOTP: %w", err)
 			}

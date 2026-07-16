@@ -181,6 +181,7 @@ The embedded webview title can be configured with `webview_title` in JSON. If om
   "submit_selector":   "#loginBtn",
   "totp_secret":    "JBSWY3DPEHPK3PXP",
   "totp_selector":  "#mfa-code",
+  "totp_submit_selector": "#verifyBtn",
   "totp_step":      2,
   "wait_after_submit_ms": 1000
 }
@@ -208,6 +209,7 @@ submit automatically.
   "submit_selector":   "input[type='submit']",
   "totp_secret":    "YOUR_TOTP_SECRET",
   "totp_selector":  "input[name='otc']",
+  "totp_submit_selector": "input[type='submit']",
   "totp_step":      2,
   "wait_after_submit_ms": 2000,
   "timeout": 120,
@@ -314,6 +316,7 @@ CLI flag  >  URL-level  >  Category-level  >  Root Config
 | `password_selector`   | ✓ | ✓ | ✓ |
 | `password_value`      | ✓ | ✓ | ✓ |
 | `submit_selector`     | ✓ | ✓ | ✓ |
+| `totp_submit_selector`| ✓ | ✓ | ✓ |
 | `done_selector`       | ✓ | ✓ | ✓ |
 | `totp_secret`         | ✓ | ✓ | ✓ |
 | `totp_selector`       | ✓ | ✓ | ✓ |
@@ -366,7 +369,7 @@ Root-level `username_value` / `password_value` apply globally to every destinati
 | Value | Behaviour |
 |-------|-----------|
 | `1` | TOTP field is filled **before** clicking submit (all fields on one page) |
-| `2` *(default)* | Submit is clicked first; webator waits for the TOTP field to appear on the next step, then fills and submits again |
+| `2` *(default)* | Submit is clicked first; webator waits for the TOTP field to appear on the next step, then fills TOTP and clicks `totp_submit_selector` when set, otherwise `submit_selector` |
 
 Most MFA flows (Microsoft, Okta) use step 2. Some older portals present all fields on a single page, requiring step 1.
 
@@ -387,6 +390,7 @@ Most MFA flows (Microsoft, Okta) use step 2. Some older portals present all fiel
 | `--password-value` | *(none)* | Password to type |
 | `--totp-secret` | *(none)* | Base32-encoded TOTP secret (RFC 6238) |
 | `--totp-selector` | *(none)* | CSS or XPath selector for the TOTP input |
+| `--totp-submit-selector` | *(none)* | CSS or XPath selector for the TOTP submit button in `totp_step=2`; falls back to `--submit-selector` |
 | `--totp-step` | `2` | `1` = before submit, `2` = after submit |
 | `--submit-selector` | *(none)* | CSS or XPath selector for the submit button |
 | `--done-selector` | *(none)* | CSS or XPath selector whose appearance confirms login success |

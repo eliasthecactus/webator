@@ -84,6 +84,7 @@
       "submit_selector":    "input[type='submit']",
       "totp_secret":        "JBSWY3DPEHPK3PXP",
       "totp_selector":      "input[name='otc']",
+      "totp_submit_selector": "input[type='submit']",
       "totp_step":          2,
       "wait_after_submit_ms": 2000,
       "done_selector":      "[data-testid='user-menu']",

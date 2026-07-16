@@ -42,3 +42,15 @@ func TestApplyDestinationMergesIgnoreCertErrors(t *testing.T) {
 		}
 	})
 }
+
+func TestApplyDestinationMergesTOTPSubmitSelector(t *testing.T) {
+	cfg := Config{TOTPSubmitSelector: "#root-verify"}
+	parent := &Destination{TOTPSubmitSelector: "#category-verify"}
+	chosen := DestinationURL{TOTPSubmitSelector: "#url-verify"}
+
+	applyDestination(&cfg, parent, chosen)
+
+	if cfg.TOTPSubmitSelector != "#url-verify" {
+		t.Fatalf("expected URL TOTP submit selector, got %q", cfg.TOTPSubmitSelector)
+	}
+}

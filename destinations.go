@@ -70,17 +70,18 @@ func buildPickerEntries(dests []Destination) []pickerEntry {
 				label:  d.Name,
 				parent: d,
 				url: DestinationURL{
-					Label:            d.Name,
-					UsernameSelector: d.UsernameSelector,
-					UsernameValue:    d.UsernameValue,
-					PasswordSelector: d.PasswordSelector,
-					PasswordValue:    d.PasswordValue,
-					TOTPSecret:       d.TOTPSecret,
-					TOTPSelector:     d.TOTPSelector,
-					TOTPStep:         d.TOTPStep,
-					SubmitSelector:   d.SubmitSelector,
-					DoneSelector:     d.DoneSelector,
-					IgnoreCertErrors: d.IgnoreCertErrors,
+					Label:              d.Name,
+					UsernameSelector:   d.UsernameSelector,
+					UsernameValue:      d.UsernameValue,
+					PasswordSelector:   d.PasswordSelector,
+					PasswordValue:      d.PasswordValue,
+					TOTPSecret:         d.TOTPSecret,
+					TOTPSelector:       d.TOTPSelector,
+					TOTPStep:           d.TOTPStep,
+					SubmitSelector:     d.SubmitSelector,
+					TOTPSubmitSelector: d.TOTPSubmitSelector,
+					DoneSelector:       d.DoneSelector,
+					IgnoreCertErrors:   d.IgnoreCertErrors,
 				},
 			})
 		} else {
@@ -187,6 +188,7 @@ func applyDestination(cfg *Config, parent *Destination, chosen DestinationURL) {
 		applyNonEmpty(&cfg.TOTPSelector, parent.TOTPSelector, chosen.TOTPSelector)
 		applyNonEmptyInt(&cfg.TOTPStep, parent.TOTPStep, chosen.TOTPStep)
 		applyNonEmpty(&cfg.SubmitSelector, parent.SubmitSelector, chosen.SubmitSelector)
+		applyNonEmpty(&cfg.TOTPSubmitSelector, parent.TOTPSubmitSelector, chosen.TOTPSubmitSelector)
 		applyNonEmpty(&cfg.DoneSelector, parent.DoneSelector, chosen.DoneSelector)
 		applyNonEmptyInt(&cfg.WaitAfterSubmitMs, parent.WaitAfterSubmitMs, chosen.WaitAfterSubmitMs)
 		applyBoolPtr(&cfg.IgnoreCertErrors, parent.IgnoreCertErrors, chosen.IgnoreCertErrors)

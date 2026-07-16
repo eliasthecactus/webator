@@ -8,6 +8,7 @@
   "password_value": "",
   "totp_secret": "",
   "totp_selector": "",
+  "totp_submit_selector": "",
   "totp_step": 2,
   "submit_selector": "",
   "done_selector": "",

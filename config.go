@@ -15,42 +15,44 @@ type WaitOverride struct {
 // DestinationURL represents a single navigable URL inside a Destination category.
 // Fields left empty fall back to the enclosing Destination, then to the root Config.
 type DestinationURL struct {
-	Label             string `json:"label"`
-	Tag               string `json:"tag"`
-	AuthStartURL      string `json:"auth_start_url"`
-	AuthDoneURL       string `json:"auth_done_url"`
-	NavigateURL       string `json:"navigate_url"`
-	UsernameSelector  string `json:"username_selector"`
-	UsernameValue     string `json:"username_value"`
-	PasswordSelector  string `json:"password_selector"`
-	PasswordValue     string `json:"password_value"`
-	TOTPSecret        string `json:"totp_secret"`
-	TOTPSelector      string `json:"totp_selector"`
-	TOTPStep          int    `json:"totp_step"`
-	SubmitSelector    string `json:"submit_selector"`
-	DoneSelector      string `json:"done_selector"`
-	WaitAfterSubmitMs int    `json:"wait_after_submit_ms"`
-	IgnoreCertErrors  *bool  `json:"ignore_cert_errors"`
+	Label              string `json:"label"`
+	Tag                string `json:"tag"`
+	AuthStartURL       string `json:"auth_start_url"`
+	AuthDoneURL        string `json:"auth_done_url"`
+	NavigateURL        string `json:"navigate_url"`
+	UsernameSelector   string `json:"username_selector"`
+	UsernameValue      string `json:"username_value"`
+	PasswordSelector   string `json:"password_selector"`
+	PasswordValue      string `json:"password_value"`
+	TOTPSecret         string `json:"totp_secret"`
+	TOTPSelector       string `json:"totp_selector"`
+	TOTPStep           int    `json:"totp_step"`
+	SubmitSelector     string `json:"submit_selector"`
+	TOTPSubmitSelector string `json:"totp_submit_selector"`
+	DoneSelector       string `json:"done_selector"`
+	WaitAfterSubmitMs  int    `json:"wait_after_submit_ms"`
+	IgnoreCertErrors   *bool  `json:"ignore_cert_errors"`
 }
 
 // Destination groups one or more URLs under a named category.
 // Selector/credential fields here apply to every URL in the group unless
 // overridden at the DestinationURL level.
 type Destination struct {
-	Name              string           `json:"name"`
-	Tag               string           `json:"tag"`
-	UsernameSelector  string           `json:"username_selector"`
-	UsernameValue     string           `json:"username_value"`
-	PasswordSelector  string           `json:"password_selector"`
-	PasswordValue     string           `json:"password_value"`
-	TOTPSecret        string           `json:"totp_secret"`
-	TOTPSelector      string           `json:"totp_selector"`
-	TOTPStep          int              `json:"totp_step"`
-	SubmitSelector    string           `json:"submit_selector"`
-	DoneSelector      string           `json:"done_selector"`
-	WaitAfterSubmitMs int              `json:"wait_after_submit_ms"`
-	IgnoreCertErrors  *bool            `json:"ignore_cert_errors"`
-	URLs              []DestinationURL `json:"urls"`
+	Name               string           `json:"name"`
+	Tag                string           `json:"tag"`
+	UsernameSelector   string           `json:"username_selector"`
+	UsernameValue      string           `json:"username_value"`
+	PasswordSelector   string           `json:"password_selector"`
+	PasswordValue      string           `json:"password_value"`
+	TOTPSecret         string           `json:"totp_secret"`
+	TOTPSelector       string           `json:"totp_selector"`
+	TOTPStep           int              `json:"totp_step"`
+	SubmitSelector     string           `json:"submit_selector"`
+	TOTPSubmitSelector string           `json:"totp_submit_selector"`
+	DoneSelector       string           `json:"done_selector"`
+	WaitAfterSubmitMs  int              `json:"wait_after_submit_ms"`
+	IgnoreCertErrors   *bool            `json:"ignore_cert_errors"`
+	URLs               []DestinationURL `json:"urls"`
 }
 
 // Config holds all configuration for the automation run.
@@ -72,8 +74,9 @@ type Config struct {
 	TOTPStep     int    `json:"totp_step"` // 1 = before first submit, 2 = after first submit (default)
 
 	// Form submit selectors
-	SubmitSelector string `json:"submit_selector"`
-	DoneSelector   string `json:"done_selector"`
+	SubmitSelector     string `json:"submit_selector"`
+	TOTPSubmitSelector string `json:"totp_submit_selector"`
+	DoneSelector       string `json:"done_selector"`
 
 	// Browser settings
 	BrowserPath                 string `json:"browser_path"`

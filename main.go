@@ -50,6 +50,7 @@ func main() {
 	// TOTP flags
 	totpSecret := flag.String("totp-secret", "", "Base32-encoded TOTP secret")
 	totpSelector := flag.String("totp-selector", "", "CSS/XPath selector for the TOTP input")
+	totpSubmitSelector := flag.String("totp-submit-selector", "", "CSS/XPath selector for the TOTP submit button")
 	totpStep := flag.Int("totp-step", 0, "TOTP step: 1=before first submit, 2=after first submit (default 2)")
 
 	// Form flags
@@ -148,6 +149,9 @@ func main() {
 	}
 	if setFlags["totp-selector"] {
 		cfg.TOTPSelector = *totpSelector
+	}
+	if setFlags["totp-submit-selector"] {
+		cfg.TOTPSubmitSelector = *totpSubmitSelector
 	}
 	if setFlags["totp-step"] {
 		cfg.TOTPStep = *totpStep
