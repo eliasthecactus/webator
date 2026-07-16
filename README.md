@@ -288,7 +288,8 @@ If `--destination-tags` narrows the list to exactly **one** selectable URL, the 
           "auth_done_url":  "https://prod.example.com/home",
           "navigate_url":   "https://prod.example.com/home",
           "username_value": "prod-admin",
-          "password_value": "prod-secret"
+          "password_value": "prod-secret",
+          "ignore_cert_errors": true
         }
       ]
     }
@@ -318,11 +319,13 @@ CLI flag  >  URL-level  >  Category-level  >  Root Config
 | `totp_selector`       | ✓ | ✓ | ✓ |
 | `totp_step`           | ✓ | ✓ | ✓ |
 | `wait_after_submit_ms`| ✓ | ✓ | ✓ |
+| `ignore_cert_errors`  | ✓ | ✓ | ✓ |
 | `auth_start_url`      | ✓ | — | ✓ |
 | `auth_done_url`       | ✓ | — | ✓ |
 | `navigate_url`        | ✓ | — | ✓ |
 
 > **CLI flags** (e.g. `--username-value`) override everything, including per-destination values. Use them to inject secrets at runtime without storing them in the config file.
+> For `ignore_cert_errors`, an explicit `false` at category or URL level overrides a root or category `true`.
 
 ### Tagging and filtering
 

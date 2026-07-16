@@ -30,6 +30,7 @@ type DestinationURL struct {
 	SubmitSelector    string `json:"submit_selector"`
 	DoneSelector      string `json:"done_selector"`
 	WaitAfterSubmitMs int    `json:"wait_after_submit_ms"`
+	IgnoreCertErrors  *bool  `json:"ignore_cert_errors"`
 }
 
 // Destination groups one or more URLs under a named category.
@@ -48,6 +49,7 @@ type Destination struct {
 	SubmitSelector    string           `json:"submit_selector"`
 	DoneSelector      string           `json:"done_selector"`
 	WaitAfterSubmitMs int              `json:"wait_after_submit_ms"`
+	IgnoreCertErrors  *bool            `json:"ignore_cert_errors"`
 	URLs              []DestinationURL `json:"urls"`
 }
 
