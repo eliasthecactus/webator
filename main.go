@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"runtime"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -64,6 +65,9 @@ func main() {
 	viewportHeight := flag.Int("viewport-height", 0, "Browser viewport height in pixels")
 	userAgent := flag.String("user-agent", "", "Browser User-Agent string")
 	kiosk := flag.Bool("kiosk", false, "Run the browser in kiosk mode")
+	kioskCloseButton := flag.Bool("kiosk-close-button", false, "Show an injected close button in the browser window")
+	kioskCloseButtonLabel := flag.String("kiosk-close-button-label", "", "Text label for the injected kiosk close button")
+	startMaximized := flag.Bool("start-maximized", false, "Start the browser window maximized, including in app mode")
 	appMode := flag.Bool("app-mode", true, "Open the browser in app mode: no address bar, tabs, or toolbar (--app=URL). Default: true")
 	webviewFlag := flag.Bool("webview", false, "Render the auth page in an embedded webview instead of launching an external browser")
 	webviewTitle := flag.String("webview-title", "", "Title for the embedded webview window")
@@ -179,6 +183,15 @@ func main() {
 	}
 	if setFlags["kiosk"] {
 		cfg.Kiosk = *kiosk
+	}
+	if setFlags["kiosk-close-button"] {
+		cfg.KioskCloseButton = kioskCloseButton
+	}
+	if setFlags["kiosk-close-button-label"] {
+		cfg.KioskCloseButtonLabel = *kioskCloseButtonLabel
+	}
+	if setFlags["start-maximized"] {
+		cfg.StartMaximized = *startMaximized
 	}
 	if setFlags["app-mode"] {
 		cfg.AppMode = *appMode
@@ -326,6 +339,7 @@ func runHeadless(cfg *Config, debug bool, browserExec string) {
 		slog.String("mode", determineMode(cfg).String()),
 		slog.Bool("headless", true),
 	)
+	logEffectiveConfig(logger, cfg)
 
 	baseCtx, stopSignal := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stopSignal()
@@ -337,6 +351,19 @@ func runHeadless(cfg *Config, debug bool, browserExec string) {
 	}
 	defer cancelBrowser()
 
+	closeRequested := make(chan struct{})
+	var closeOnce sync.Once
+	if err := installKioskCloseButton(browserCtx, cfg, logger, func() {
+		closeOnce.Do(func() {
+			close(closeRequested)
+			cancelBrowser()
+			stopSignal()
+		})
+	}); err != nil {
+		logger.Error("failed to install kiosk close button", slog.Any("error", err))
+		os.Exit(1)
+	}
+
 	authCtx := browserCtx
 	if cfg.Timeout > 0 {
 		var cancelAuth context.CancelFunc
@@ -345,6 +372,12 @@ func runHeadless(cfg *Config, debug bool, browserExec string) {
 	}
 
 	if err := runAuth(authCtx, cfg, logger, func(string) {}); err != nil {
+		select {
+		case <-closeRequested:
+			logger.Info("webator closed by kiosk close button")
+			return
+		default:
+		}
 		logger.Error("authentication failed", slog.Any("error", err))
 		os.Exit(1)
 	}
@@ -400,6 +433,7 @@ func runGUI(cfg *Config, debug bool, browserExec string) {
 			gui.UpdateInfoLabels(cfg.AuthStartURL, cfg.UsernameValue)
 		}
 
+		logEffectiveConfig(logger, cfg)
 		gui.SetStatus("Starting browser...")
 
 		browserCtx, cancelBrowser, err := launchBrowser(baseCtx, cfg, browserExec, logger)
@@ -407,6 +441,19 @@ func runGUI(cfg *Config, debug bool, browserExec string) {
 			return err
 		}
 		gui.AddCleanup(cancelBrowser)
+
+		closeRequested := make(chan struct{})
+		var closeOnce sync.Once
+		if err := installKioskCloseButton(browserCtx, cfg, logger, func() {
+			closeOnce.Do(func() {
+				close(closeRequested)
+				cancelBrowser()
+				stopSignal()
+				gui.fyneApp.Quit()
+			})
+		}); err != nil {
+			return err
+		}
 
 		authCtx := browserCtx
 		if cfg.Timeout > 0 {
@@ -416,6 +463,12 @@ func runGUI(cfg *Config, debug bool, browserExec string) {
 		}
 
 		if err := runAuth(authCtx, cfg, logger, gui.SetStatus); err != nil {
+			select {
+			case <-closeRequested:
+				logger.Info("webator closed by kiosk close button")
+				return nil
+			default:
+			}
 			return err
 		}
 		gui.WatchBrowser(browserCtx, baseCtx)
@@ -441,6 +494,7 @@ func runWebview(cfg *Config, debug bool) {
 			slog.Bool("debug", debug),
 			slog.Bool("webview", true),
 		)
+		logEffectiveConfig(logger, cfg)
 
 		logger.Info("opening embedded webview", slog.String("url", cfg.AuthStartURL))
 		w, err := newWebviewWindow(cfg, controller)
@@ -517,6 +571,7 @@ func runWebview(cfg *Config, debug bool) {
 		slog.Bool("debug", debug),
 		slog.Bool("webview", true),
 	)
+	logEffectiveConfig(logger, cfg)
 
 	logger.Info("opening embedded webview", slog.String("url", cfg.AuthStartURL))
 	w, err := newWebviewWindow(cfg, controller)

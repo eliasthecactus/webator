@@ -127,6 +127,8 @@ In `--debug` mode, a GUI window is shown with a log box. Full-auto authenticatio
 
 This enables kiosk-friendly browser options such as fullscreen mode, disabled context menu, disabled dev tools and translation, and touchscreen/pinch restrictions.
 
+When kiosk mode is enabled, webator injects a small close button into the browser page by default. Clicking it closes the browser and exits webator. The button is injected on new pages and kept present during SPA updates.
+
 
 ### Debug Mode (verbose stdout logs)
 
@@ -400,6 +402,9 @@ Most MFA flows (Microsoft, Okta) use step 2. Some older portals present all fiel
 | `--viewport-height` | `1080` | Viewport height in pixels |
 | `--user-agent` | Chrome 124 UA | Browser User-Agent string |
 | `--kiosk` | `false` | Run the browser in kiosk/fullscreen mode |
+| `--kiosk-close-button` | auto | Show an injected close button; defaults to enabled when `--kiosk` is enabled, disabled otherwise |
+| `--kiosk-close-button-label` | `Close` | Text label for the injected kiosk close button |
+| `--start-maximized` | `false` | Start the browser window maximized, including in app mode |
 | `--app-mode` | `true` | Open the browser in app mode: no address bar, tabs, or toolbar. Uses Chrome's `--app=URL` under the hood. |
 | `--webview` | `false` | Render the auth page in an embedded webview instead of using an external browser |
 | `--webview-title` | *(none)* | Explicit title for the embedded webview window |

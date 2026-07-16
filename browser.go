@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 
+	cdpbrowser "github.com/chromedp/cdproto/browser"
 	"github.com/chromedp/chromedp"
 )
 
@@ -177,8 +178,7 @@ func launchBrowser(parentCtx context.Context, cfg *Config, browserPath string, l
 		allocOpts = append(allocOpts, chromedp.WindowSize(cfg.ViewportWidth, cfg.ViewportHeight))
 	} else if cfg.Kiosk {
 		allocOpts = append(allocOpts, chromedp.Flag("start-fullscreen", true))
-	} else if !cfg.AppMode {
-		// App mode manages its own window size; don't force start-maximized.
+	} else if cfg.StartMaximized || !cfg.AppMode {
 		allocOpts = append(allocOpts, chromedp.Flag("start-maximized", true))
 	}
 
@@ -211,6 +211,11 @@ func launchBrowser(parentCtx context.Context, cfg *Config, browserPath string, l
 		combinedCancel()
 		return nil, nil, fmt.Errorf("browser initialisation failed: %w", err)
 	}
+	if (cfg.StartMaximized || !cfg.AppMode) && !cfg.Headless && !cfg.Kiosk {
+		if err := maximizeBrowserWindow(cdpCtx, logger); err != nil {
+			logger.Warn("failed to maximize browser window", slog.Any("error", err))
+		}
+	}
 
 	logger.Info("browser launched",
 		slog.String("path", browserPath),
@@ -220,4 +225,22 @@ func launchBrowser(parentCtx context.Context, cfg *Config, browserPath string, l
 	)
 
 	return cdpCtx, combinedCancel, nil
+}
+
+func maximizeBrowserWindow(ctx context.Context, logger *slog.Logger) error {
+	var windowID cdpbrowser.WindowID
+	if err := chromedp.Run(ctx, chromedp.ActionFunc(func(ctx context.Context) error {
+		id, _, err := cdpbrowser.GetWindowForTarget().Do(ctx)
+		if err != nil {
+			return err
+		}
+		windowID = id
+		return cdpbrowser.SetWindowBounds(windowID, &cdpbrowser.Bounds{
+			WindowState: cdpbrowser.WindowStateMaximized,
+		}).Do(ctx)
+	})); err != nil {
+		return err
+	}
+	logger.Info("browser window maximized", slog.Int("windowId", int(windowID)))
+	return nil
 }

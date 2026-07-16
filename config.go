@@ -85,6 +85,9 @@ type Config struct {
 	ViewportHeight              int    `json:"viewport_height"`
 	UserAgent                   string `json:"user_agent"`
 	Kiosk                       bool   `json:"kiosk"`
+	KioskCloseButton            *bool  `json:"kiosk_close_button"`
+	KioskCloseButtonLabel       string `json:"kiosk_close_button_label"`
+	StartMaximized              bool   `json:"start_maximized"`
 	AppMode                     bool   `json:"app_mode"`
 	Webview                     bool   `json:"webview"`
 	Incognito                   bool   `json:"incognito"`
@@ -135,6 +138,8 @@ func defaultConfig() Config {
 		ViewportHeight:              1080,
 		UserAgent:                   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
 		Kiosk:                       false,
+		KioskCloseButtonLabel:       "Close",
+		StartMaximized:              false,
 		AppMode:                     true,
 		Webview:                     false,
 		Incognito:                   false,
