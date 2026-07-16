@@ -325,12 +325,17 @@ CLI flag  >  URL-level  >  Category-level  >  Root Config
 | `totp_step`           | ✓ | ✓ | ✓ |
 | `wait_after_submit_ms`| ✓ | ✓ | ✓ |
 | `ignore_cert_errors`  | ✓ | ✓ | ✓ |
+| `kiosk`               | ✓ | ✓ | ✓ |
+| `kiosk_close_button`  | ✓ | ✓ | ✓ |
+| `kiosk_close_button_label` | ✓ | ✓ | ✓ |
+| `start_maximized`     | ✓ | ✓ | ✓ |
+| `app_mode`            | ✓ | ✓ | ✓ |
 | `auth_start_url`      | ✓ | — | ✓ |
 | `auth_done_url`       | ✓ | — | ✓ |
 | `navigate_url`        | ✓ | — | ✓ |
 
 > **CLI flags** (e.g. `--username-value`) override everything, including per-destination values. Use them to inject secrets at runtime without storing them in the config file.
-> For `ignore_cert_errors`, an explicit `false` at category or URL level overrides a root or category `true`.
+> For boolean fields such as `ignore_cert_errors`, `kiosk`, `kiosk_close_button`, `start_maximized`, and `app_mode`, an explicit `false` at category or URL level overrides a root or category `true`.
 
 ### Tagging and filtering
 

@@ -54,3 +54,43 @@ func TestApplyDestinationMergesTOTPSubmitSelector(t *testing.T) {
 		t.Fatalf("expected URL TOTP submit selector, got %q", cfg.TOTPSubmitSelector)
 	}
 }
+
+func TestApplyDestinationMergesBrowserWindowOptions(t *testing.T) {
+	cfg := Config{
+		Kiosk:                 false,
+		KioskCloseButton:      boolPtr(false),
+		KioskCloseButtonLabel: "Root Close",
+		StartMaximized:        false,
+		AppMode:               true,
+	}
+	parent := &Destination{
+		Kiosk:                 boolPtr(true),
+		KioskCloseButton:      boolPtr(true),
+		KioskCloseButtonLabel: "Category Close",
+		StartMaximized:        boolPtr(true),
+		AppMode:               boolPtr(false),
+	}
+	chosen := DestinationURL{
+		Kiosk:                 boolPtr(false),
+		KioskCloseButtonLabel: "URL Close",
+		AppMode:               boolPtr(true),
+	}
+
+	applyDestination(&cfg, parent, chosen)
+
+	if cfg.Kiosk {
+		t.Fatal("expected URL kiosk=false to override category true")
+	}
+	if cfg.KioskCloseButton == nil || !*cfg.KioskCloseButton {
+		t.Fatal("expected category kiosk_close_button=true to override root false")
+	}
+	if cfg.KioskCloseButtonLabel != "URL Close" {
+		t.Fatalf("expected URL close button label, got %q", cfg.KioskCloseButtonLabel)
+	}
+	if !cfg.StartMaximized {
+		t.Fatal("expected category start_maximized=true to override root false")
+	}
+	if !cfg.AppMode {
+		t.Fatal("expected URL app_mode=true to override category false")
+	}
+}

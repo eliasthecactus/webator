@@ -32,27 +32,38 @@ type DestinationURL struct {
 	DoneSelector       string `json:"done_selector"`
 	WaitAfterSubmitMs  int    `json:"wait_after_submit_ms"`
 	IgnoreCertErrors   *bool  `json:"ignore_cert_errors"`
+
+	Kiosk                 *bool  `json:"kiosk"`
+	KioskCloseButton      *bool  `json:"kiosk_close_button"`
+	KioskCloseButtonLabel string `json:"kiosk_close_button_label"`
+	StartMaximized        *bool  `json:"start_maximized"`
+	AppMode               *bool  `json:"app_mode"`
 }
 
 // Destination groups one or more URLs under a named category.
 // Selector/credential fields here apply to every URL in the group unless
 // overridden at the DestinationURL level.
 type Destination struct {
-	Name               string           `json:"name"`
-	Tag                string           `json:"tag"`
-	UsernameSelector   string           `json:"username_selector"`
-	UsernameValue      string           `json:"username_value"`
-	PasswordSelector   string           `json:"password_selector"`
-	PasswordValue      string           `json:"password_value"`
-	TOTPSecret         string           `json:"totp_secret"`
-	TOTPSelector       string           `json:"totp_selector"`
-	TOTPStep           int              `json:"totp_step"`
-	SubmitSelector     string           `json:"submit_selector"`
-	TOTPSubmitSelector string           `json:"totp_submit_selector"`
-	DoneSelector       string           `json:"done_selector"`
-	WaitAfterSubmitMs  int              `json:"wait_after_submit_ms"`
-	IgnoreCertErrors   *bool            `json:"ignore_cert_errors"`
-	URLs               []DestinationURL `json:"urls"`
+	Name                  string           `json:"name"`
+	Tag                   string           `json:"tag"`
+	UsernameSelector      string           `json:"username_selector"`
+	UsernameValue         string           `json:"username_value"`
+	PasswordSelector      string           `json:"password_selector"`
+	PasswordValue         string           `json:"password_value"`
+	TOTPSecret            string           `json:"totp_secret"`
+	TOTPSelector          string           `json:"totp_selector"`
+	TOTPStep              int              `json:"totp_step"`
+	SubmitSelector        string           `json:"submit_selector"`
+	TOTPSubmitSelector    string           `json:"totp_submit_selector"`
+	DoneSelector          string           `json:"done_selector"`
+	WaitAfterSubmitMs     int              `json:"wait_after_submit_ms"`
+	IgnoreCertErrors      *bool            `json:"ignore_cert_errors"`
+	Kiosk                 *bool            `json:"kiosk"`
+	KioskCloseButton      *bool            `json:"kiosk_close_button"`
+	KioskCloseButtonLabel string           `json:"kiosk_close_button_label"`
+	StartMaximized        *bool            `json:"start_maximized"`
+	AppMode               *bool            `json:"app_mode"`
+	URLs                  []DestinationURL `json:"urls"`
 }
 
 // Config holds all configuration for the automation run.

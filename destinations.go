@@ -70,18 +70,23 @@ func buildPickerEntries(dests []Destination) []pickerEntry {
 				label:  d.Name,
 				parent: d,
 				url: DestinationURL{
-					Label:              d.Name,
-					UsernameSelector:   d.UsernameSelector,
-					UsernameValue:      d.UsernameValue,
-					PasswordSelector:   d.PasswordSelector,
-					PasswordValue:      d.PasswordValue,
-					TOTPSecret:         d.TOTPSecret,
-					TOTPSelector:       d.TOTPSelector,
-					TOTPStep:           d.TOTPStep,
-					SubmitSelector:     d.SubmitSelector,
-					TOTPSubmitSelector: d.TOTPSubmitSelector,
-					DoneSelector:       d.DoneSelector,
-					IgnoreCertErrors:   d.IgnoreCertErrors,
+					Label:                 d.Name,
+					UsernameSelector:      d.UsernameSelector,
+					UsernameValue:         d.UsernameValue,
+					PasswordSelector:      d.PasswordSelector,
+					PasswordValue:         d.PasswordValue,
+					TOTPSecret:            d.TOTPSecret,
+					TOTPSelector:          d.TOTPSelector,
+					TOTPStep:              d.TOTPStep,
+					SubmitSelector:        d.SubmitSelector,
+					TOTPSubmitSelector:    d.TOTPSubmitSelector,
+					DoneSelector:          d.DoneSelector,
+					IgnoreCertErrors:      d.IgnoreCertErrors,
+					Kiosk:                 d.Kiosk,
+					KioskCloseButton:      d.KioskCloseButton,
+					KioskCloseButtonLabel: d.KioskCloseButtonLabel,
+					StartMaximized:        d.StartMaximized,
+					AppMode:               d.AppMode,
 				},
 			})
 		} else {
@@ -179,6 +184,16 @@ func applyDestination(cfg *Config, parent *Destination, chosen DestinationURL) {
 			*dst = *urlVal
 		}
 	}
+	applyBoolPtrValue := func(dst **bool, catVal, urlVal *bool) {
+		if catVal != nil {
+			v := *catVal
+			*dst = &v
+		}
+		if urlVal != nil {
+			v := *urlVal
+			*dst = &v
+		}
+	}
 	if parent != nil {
 		applyNonEmpty(&cfg.UsernameSelector, parent.UsernameSelector, chosen.UsernameSelector)
 		applyNonEmpty(&cfg.UsernameValue, parent.UsernameValue, chosen.UsernameValue)
@@ -192,6 +207,11 @@ func applyDestination(cfg *Config, parent *Destination, chosen DestinationURL) {
 		applyNonEmpty(&cfg.DoneSelector, parent.DoneSelector, chosen.DoneSelector)
 		applyNonEmptyInt(&cfg.WaitAfterSubmitMs, parent.WaitAfterSubmitMs, chosen.WaitAfterSubmitMs)
 		applyBoolPtr(&cfg.IgnoreCertErrors, parent.IgnoreCertErrors, chosen.IgnoreCertErrors)
+		applyBoolPtr(&cfg.Kiosk, parent.Kiosk, chosen.Kiosk)
+		applyBoolPtrValue(&cfg.KioskCloseButton, parent.KioskCloseButton, chosen.KioskCloseButton)
+		applyNonEmpty(&cfg.KioskCloseButtonLabel, parent.KioskCloseButtonLabel, chosen.KioskCloseButtonLabel)
+		applyBoolPtr(&cfg.StartMaximized, parent.StartMaximized, chosen.StartMaximized)
+		applyBoolPtr(&cfg.AppMode, parent.AppMode, chosen.AppMode)
 	}
 	if chosen.AuthStartURL != "" {
 		cfg.AuthStartURL = chosen.AuthStartURL
