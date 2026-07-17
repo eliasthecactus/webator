@@ -35,6 +35,7 @@ func main() {
 
 	// ── Flag definitions ───────────────────────────────────────────────────
 	configPath := flag.String("config", "", "Path to JSON config file (optional)")
+	editConfigPath := flag.String("edit-config", "", "Open a GUI editor for the JSON config file and exit")
 	debug := flag.Bool("debug", false, "Enable debug mode: verbose logging to stdout, browser visible")
 
 	// URL flags
@@ -67,6 +68,15 @@ func main() {
 	kiosk := flag.Bool("kiosk", false, "Run the browser in kiosk mode")
 	kioskCloseButton := flag.Bool("kiosk-close-button", false, "Show an injected close button in the browser window")
 	kioskCloseButtonLabel := flag.String("kiosk-close-button-label", "", "Text label for the injected kiosk close button")
+	kioskCloseButtonPosition := flag.String("kiosk-close-button-position", "", "Position for the kiosk close button: top-left, top-right, bottom-left, or bottom-right")
+	kioskCloseButtonSwapPosition := flag.Bool("kiosk-close-button-swap-position", false, "Allow holding or right-clicking the kiosk close button to move it to the opposite side")
+	closeButton := flag.Bool("close-button", false, "Show an injected close button in the browser window")
+	closeButtonLabel := flag.String("close-button-label", "", "Text label for the injected close button")
+	closeButtonPosition := flag.String("close-button-position", "", "Position for the close button: top-left, top-right, bottom-left, or bottom-right")
+	closeButtonSwapPosition := flag.Bool("close-button-swap-position", false, "Allow holding or right-clicking the close button to move it to the opposite side")
+	browserControls := flag.Bool("browser-controls", false, "Show injected back, forward, and refresh controls")
+	browserControlsPosition := flag.String("browser-controls-position", "", "Position for browser controls: top-left, top-right, bottom-left, or bottom-right")
+	browserControlsSwapPosition := flag.Bool("browser-controls-swap-position", false, "Allow holding or right-clicking browser controls to move them to the opposite side")
 	startMaximized := flag.Bool("start-maximized", false, "Start the browser window maximized, including in app mode")
 	appMode := flag.Bool("app-mode", true, "Open the browser in app mode: no address bar, tabs, or toolbar (--app=URL). Default: true")
 	webviewFlag := flag.Bool("webview", false, "Render the auth page in an embedded webview instead of launching an external browser")
@@ -119,6 +129,13 @@ func main() {
 	flag.Visit(func(f *flag.Flag) {
 		setFlags[f.Name] = true
 	})
+
+	if setFlags["edit-config"] {
+		if err := runConfigEditor(*editConfigPath); err != nil {
+			showError(fmt.Sprintf("error opening config editor: %v", err), true)
+		}
+		return
+	}
 
 	// ── Load config file (optional) ────────────────────────────────────────
 	cfg, err := loadConfig(*configPath)
@@ -189,6 +206,35 @@ func main() {
 	}
 	if setFlags["kiosk-close-button-label"] {
 		cfg.KioskCloseButtonLabel = *kioskCloseButtonLabel
+	}
+	if setFlags["kiosk-close-button-position"] {
+		cfg.KioskCloseButtonPosition = *kioskCloseButtonPosition
+	}
+	if setFlags["kiosk-close-button-swap-position"] {
+		cfg.KioskCloseButtonSwapPosition = *kioskCloseButtonSwapPosition
+	}
+	// The neutral close-button flags work in kiosk, app, and regular browser
+	// modes. The kiosk-prefixed flags above remain supported for compatibility.
+	if setFlags["close-button"] {
+		cfg.KioskCloseButton = closeButton
+	}
+	if setFlags["close-button-label"] {
+		cfg.KioskCloseButtonLabel = *closeButtonLabel
+	}
+	if setFlags["close-button-position"] {
+		cfg.KioskCloseButtonPosition = *closeButtonPosition
+	}
+	if setFlags["close-button-swap-position"] {
+		cfg.KioskCloseButtonSwapPosition = *closeButtonSwapPosition
+	}
+	if setFlags["browser-controls"] {
+		cfg.BrowserControls = *browserControls
+	}
+	if setFlags["browser-controls-position"] {
+		cfg.BrowserControlsPosition = *browserControlsPosition
+	}
+	if setFlags["browser-controls-swap-position"] {
+		cfg.BrowserControlsSwapPosition = *browserControlsSwapPosition
 	}
 	if setFlags["start-maximized"] {
 		cfg.StartMaximized = *startMaximized

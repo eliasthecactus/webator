@@ -70,23 +70,37 @@ func buildPickerEntries(dests []Destination) []pickerEntry {
 				label:  d.Name,
 				parent: d,
 				url: DestinationURL{
-					Label:                 d.Name,
-					UsernameSelector:      d.UsernameSelector,
-					UsernameValue:         d.UsernameValue,
-					PasswordSelector:      d.PasswordSelector,
-					PasswordValue:         d.PasswordValue,
-					TOTPSecret:            d.TOTPSecret,
-					TOTPSelector:          d.TOTPSelector,
-					TOTPStep:              d.TOTPStep,
-					SubmitSelector:        d.SubmitSelector,
-					TOTPSubmitSelector:    d.TOTPSubmitSelector,
-					DoneSelector:          d.DoneSelector,
-					IgnoreCertErrors:      d.IgnoreCertErrors,
-					Kiosk:                 d.Kiosk,
-					KioskCloseButton:      d.KioskCloseButton,
-					KioskCloseButtonLabel: d.KioskCloseButtonLabel,
-					StartMaximized:        d.StartMaximized,
-					AppMode:               d.AppMode,
+					Label:                        d.Name,
+					UsernameSelector:             d.UsernameSelector,
+					UsernameValue:                d.UsernameValue,
+					PasswordSelector:             d.PasswordSelector,
+					PasswordValue:                d.PasswordValue,
+					TOTPSecret:                   d.TOTPSecret,
+					TOTPSelector:                 d.TOTPSelector,
+					TOTPStep:                     d.TOTPStep,
+					SubmitSelector:               d.SubmitSelector,
+					TOTPSubmitSelector:           d.TOTPSubmitSelector,
+					DoneSelector:                 d.DoneSelector,
+					IgnoreCertErrors:             d.IgnoreCertErrors,
+					Kiosk:                        d.Kiosk,
+					KioskCloseButton:             d.KioskCloseButton,
+					KioskCloseButtonLabel:        d.KioskCloseButtonLabel,
+					KioskCloseButtonPosition:     d.KioskCloseButtonPosition,
+					KioskCloseButtonSwapPosition: d.KioskCloseButtonSwapPosition,
+					BrowserControls:              d.BrowserControls,
+					BrowserControlsPosition:      d.BrowserControlsPosition,
+					BrowserControlsSwapPosition:  d.BrowserControlsSwapPosition,
+					StartMaximized:               d.StartMaximized,
+					AppMode:                      d.AppMode,
+					Incognito:                    d.Incognito,
+					DisableContextMenu:           d.DisableContextMenu,
+					DisableDevTools:              d.DisableDevTools,
+					DisableTranslate:             d.DisableTranslate,
+					DisablePinch:                 d.DisablePinch,
+					DisableTouchAdjustment:       d.DisableTouchAdjustment,
+					KioskPrinting:                d.KioskPrinting,
+					NoFirstRun:                   d.NoFirstRun,
+					NoDefaultBrowserCheck:        d.NoDefaultBrowserCheck,
 				},
 			})
 		} else {
@@ -210,8 +224,22 @@ func applyDestination(cfg *Config, parent *Destination, chosen DestinationURL) {
 		applyBoolPtr(&cfg.Kiosk, parent.Kiosk, chosen.Kiosk)
 		applyBoolPtrValue(&cfg.KioskCloseButton, parent.KioskCloseButton, chosen.KioskCloseButton)
 		applyNonEmpty(&cfg.KioskCloseButtonLabel, parent.KioskCloseButtonLabel, chosen.KioskCloseButtonLabel)
+		applyNonEmpty(&cfg.KioskCloseButtonPosition, parent.KioskCloseButtonPosition, chosen.KioskCloseButtonPosition)
+		applyBoolPtr(&cfg.KioskCloseButtonSwapPosition, parent.KioskCloseButtonSwapPosition, chosen.KioskCloseButtonSwapPosition)
+		applyBoolPtr(&cfg.BrowserControls, parent.BrowserControls, chosen.BrowserControls)
+		applyNonEmpty(&cfg.BrowserControlsPosition, parent.BrowserControlsPosition, chosen.BrowserControlsPosition)
+		applyBoolPtr(&cfg.BrowserControlsSwapPosition, parent.BrowserControlsSwapPosition, chosen.BrowserControlsSwapPosition)
 		applyBoolPtr(&cfg.StartMaximized, parent.StartMaximized, chosen.StartMaximized)
 		applyBoolPtr(&cfg.AppMode, parent.AppMode, chosen.AppMode)
+		applyBoolPtr(&cfg.Incognito, parent.Incognito, chosen.Incognito)
+		applyBoolPtr(&cfg.DisableContextMenu, parent.DisableContextMenu, chosen.DisableContextMenu)
+		applyBoolPtr(&cfg.DisableDevTools, parent.DisableDevTools, chosen.DisableDevTools)
+		applyBoolPtr(&cfg.DisableTranslate, parent.DisableTranslate, chosen.DisableTranslate)
+		applyBoolPtr(&cfg.DisablePinch, parent.DisablePinch, chosen.DisablePinch)
+		applyBoolPtr(&cfg.DisableTouchAdjustment, parent.DisableTouchAdjustment, chosen.DisableTouchAdjustment)
+		applyBoolPtr(&cfg.KioskPrinting, parent.KioskPrinting, chosen.KioskPrinting)
+		applyBoolPtr(&cfg.NoFirstRun, parent.NoFirstRun, chosen.NoFirstRun)
+		applyBoolPtr(&cfg.NoDefaultBrowserCheck, parent.NoDefaultBrowserCheck, chosen.NoDefaultBrowserCheck)
 	}
 	if chosen.AuthStartURL != "" {
 		cfg.AuthStartURL = chosen.AuthStartURL

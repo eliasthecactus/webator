@@ -387,6 +387,7 @@ Most MFA flows (Microsoft, Okta) use step 2. Some older portals present all fiel
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--config` | *(none)* | Path to JSON config file |
+| `--edit-config` | *(none)* | Open the GUI config editor for the given JSON file and exit |
 | `--debug` | `false` | Write logs to stdout in human-readable format instead of JSON log file |
 | `--auth-start-url` | **required** | URL where the login flow begins |
 | `--auth-done-url` | *(none)* | URL substring that signals successful login |
@@ -407,8 +408,14 @@ Most MFA flows (Microsoft, Okta) use step 2. Some older portals present all fiel
 | `--viewport-height` | `1080` | Viewport height in pixels |
 | `--user-agent` | Chrome 124 UA | Browser User-Agent string |
 | `--kiosk` | `false` | Run the browser in kiosk/fullscreen mode |
-| `--kiosk-close-button` | auto | Show an injected close button; defaults to enabled when `--kiosk` is enabled, disabled otherwise |
-| `--kiosk-close-button-label` | `Close` | Text label for the injected kiosk close button |
+| `--close-button` | auto | Show an injected Close button in kiosk, app, or normal browser mode; enabled by default only in kiosk mode |
+| `--close-button-label` | `Close` | Text label for the injected Close button |
+| `--close-button-position` | `top-right` | Position: `top-left`, `top-right`, `bottom-left`, or `bottom-right` |
+| `--close-button-swap-position` | `false` | Let a right-click or press-and-hold move the Close button to the opposite side |
+| `--kiosk-close-button*` | legacy aliases | Backward-compatible aliases for the corresponding `--close-button*` flags |
+| `--browser-controls` | `false` | Show injected back, forward, and refresh controls |
+| `--browser-controls-position` | `top-left` | Position: `top-left`, `top-right`, `bottom-left`, or `bottom-right` |
+| `--browser-controls-swap-position` | `false` | Let a right-click or press-and-hold move controls to the opposite side |
 | `--start-maximized` | `false` | Start the browser window maximized, including in app mode |
 | `--app-mode` | `true` | Open the browser in app mode: no address bar, tabs, or toolbar. Uses Chrome's `--app=URL` under the hood. |
 | `--webview` | `false` | Render the auth page in an embedded webview instead of using an external browser |

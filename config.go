@@ -1,10 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // WaitOverride allows per-step timeout configuration.
@@ -33,37 +37,65 @@ type DestinationURL struct {
 	WaitAfterSubmitMs  int    `json:"wait_after_submit_ms"`
 	IgnoreCertErrors   *bool  `json:"ignore_cert_errors"`
 
-	Kiosk                 *bool  `json:"kiosk"`
-	KioskCloseButton      *bool  `json:"kiosk_close_button"`
-	KioskCloseButtonLabel string `json:"kiosk_close_button_label"`
-	StartMaximized        *bool  `json:"start_maximized"`
-	AppMode               *bool  `json:"app_mode"`
+	Kiosk                        *bool  `json:"kiosk"`
+	KioskCloseButton             *bool  `json:"kiosk_close_button"`
+	KioskCloseButtonLabel        string `json:"kiosk_close_button_label"`
+	KioskCloseButtonPosition     string `json:"kiosk_close_button_position"`
+	KioskCloseButtonSwapPosition *bool  `json:"kiosk_close_button_swap_position"`
+	BrowserControls              *bool  `json:"browser_controls"`
+	BrowserControlsPosition      string `json:"browser_controls_position"`
+	BrowserControlsSwapPosition  *bool  `json:"browser_controls_swap_position"`
+	StartMaximized               *bool  `json:"start_maximized"`
+	AppMode                      *bool  `json:"app_mode"`
+	Incognito                    *bool  `json:"incognito"`
+	DisableContextMenu           *bool  `json:"disable_context_menu"`
+	DisableDevTools              *bool  `json:"disable_dev_tools"`
+	DisableTranslate             *bool  `json:"disable_translate"`
+	DisablePinch                 *bool  `json:"disable_pinch"`
+	DisableTouchAdjustment       *bool  `json:"disable_touch_adjustment"`
+	KioskPrinting                *bool  `json:"kiosk_printing"`
+	NoFirstRun                   *bool  `json:"no_first_run"`
+	NoDefaultBrowserCheck        *bool  `json:"no_default_browser_check"`
 }
 
 // Destination groups one or more URLs under a named category.
 // Selector/credential fields here apply to every URL in the group unless
 // overridden at the DestinationURL level.
 type Destination struct {
-	Name                  string           `json:"name"`
-	Tag                   string           `json:"tag"`
-	UsernameSelector      string           `json:"username_selector"`
-	UsernameValue         string           `json:"username_value"`
-	PasswordSelector      string           `json:"password_selector"`
-	PasswordValue         string           `json:"password_value"`
-	TOTPSecret            string           `json:"totp_secret"`
-	TOTPSelector          string           `json:"totp_selector"`
-	TOTPStep              int              `json:"totp_step"`
-	SubmitSelector        string           `json:"submit_selector"`
-	TOTPSubmitSelector    string           `json:"totp_submit_selector"`
-	DoneSelector          string           `json:"done_selector"`
-	WaitAfterSubmitMs     int              `json:"wait_after_submit_ms"`
-	IgnoreCertErrors      *bool            `json:"ignore_cert_errors"`
-	Kiosk                 *bool            `json:"kiosk"`
-	KioskCloseButton      *bool            `json:"kiosk_close_button"`
-	KioskCloseButtonLabel string           `json:"kiosk_close_button_label"`
-	StartMaximized        *bool            `json:"start_maximized"`
-	AppMode               *bool            `json:"app_mode"`
-	URLs                  []DestinationURL `json:"urls"`
+	Name                         string           `json:"name"`
+	Tag                          string           `json:"tag"`
+	UsernameSelector             string           `json:"username_selector"`
+	UsernameValue                string           `json:"username_value"`
+	PasswordSelector             string           `json:"password_selector"`
+	PasswordValue                string           `json:"password_value"`
+	TOTPSecret                   string           `json:"totp_secret"`
+	TOTPSelector                 string           `json:"totp_selector"`
+	TOTPStep                     int              `json:"totp_step"`
+	SubmitSelector               string           `json:"submit_selector"`
+	TOTPSubmitSelector           string           `json:"totp_submit_selector"`
+	DoneSelector                 string           `json:"done_selector"`
+	WaitAfterSubmitMs            int              `json:"wait_after_submit_ms"`
+	IgnoreCertErrors             *bool            `json:"ignore_cert_errors"`
+	Kiosk                        *bool            `json:"kiosk"`
+	KioskCloseButton             *bool            `json:"kiosk_close_button"`
+	KioskCloseButtonLabel        string           `json:"kiosk_close_button_label"`
+	KioskCloseButtonPosition     string           `json:"kiosk_close_button_position"`
+	KioskCloseButtonSwapPosition *bool            `json:"kiosk_close_button_swap_position"`
+	BrowserControls              *bool            `json:"browser_controls"`
+	BrowserControlsPosition      string           `json:"browser_controls_position"`
+	BrowserControlsSwapPosition  *bool            `json:"browser_controls_swap_position"`
+	StartMaximized               *bool            `json:"start_maximized"`
+	AppMode                      *bool            `json:"app_mode"`
+	Incognito                    *bool            `json:"incognito"`
+	DisableContextMenu           *bool            `json:"disable_context_menu"`
+	DisableDevTools              *bool            `json:"disable_dev_tools"`
+	DisableTranslate             *bool            `json:"disable_translate"`
+	DisablePinch                 *bool            `json:"disable_pinch"`
+	DisableTouchAdjustment       *bool            `json:"disable_touch_adjustment"`
+	KioskPrinting                *bool            `json:"kiosk_printing"`
+	NoFirstRun                   *bool            `json:"no_first_run"`
+	NoDefaultBrowserCheck        *bool            `json:"no_default_browser_check"`
+	URLs                         []DestinationURL `json:"urls"`
 }
 
 // Config holds all configuration for the automation run.
@@ -90,31 +122,36 @@ type Config struct {
 	DoneSelector       string `json:"done_selector"`
 
 	// Browser settings
-	BrowserPath                 string `json:"browser_path"`
-	Headless                    bool   `json:"headless"`
-	ViewportWidth               int    `json:"viewport_width"`
-	ViewportHeight              int    `json:"viewport_height"`
-	UserAgent                   string `json:"user_agent"`
-	Kiosk                       bool   `json:"kiosk"`
-	KioskCloseButton            *bool  `json:"kiosk_close_button"`
-	KioskCloseButtonLabel       string `json:"kiosk_close_button_label"`
-	StartMaximized              bool   `json:"start_maximized"`
-	AppMode                     bool   `json:"app_mode"`
-	Webview                     bool   `json:"webview"`
-	Incognito                   bool   `json:"incognito"`
-	DisableContextMenu          bool   `json:"disable_context_menu"`
-	DisableDevTools             bool   `json:"disable_dev_tools"`
-	DisableTranslate            bool   `json:"disable_translate"`
-	DisablePinch                bool   `json:"disable_pinch"`
-	DisableTouchAdjustment      bool   `json:"disable_touch_adjustment"`
-	KioskPrinting               bool   `json:"kiosk_printing"`
-	OverscrollHistoryNavigation int    `json:"overscroll_history_navigation"`
-	PullToRefresh               int    `json:"pull_to_refresh"`
-	DisableFeatures             string `json:"disable_features"`
-	EdgeKioskType               string `json:"edge_kiosk_type"`
-	NoFirstRun                  bool   `json:"no_first_run"`
-	NoDefaultBrowserCheck       bool   `json:"no_default_browser_check"`
-	WebviewTitle                string `json:"webview_title"`
+	BrowserPath                  string `json:"browser_path"`
+	Headless                     bool   `json:"headless"`
+	ViewportWidth                int    `json:"viewport_width"`
+	ViewportHeight               int    `json:"viewport_height"`
+	UserAgent                    string `json:"user_agent"`
+	Kiosk                        bool   `json:"kiosk"`
+	KioskCloseButton             *bool  `json:"kiosk_close_button"`
+	KioskCloseButtonLabel        string `json:"kiosk_close_button_label"`
+	KioskCloseButtonPosition     string `json:"kiosk_close_button_position"`
+	KioskCloseButtonSwapPosition bool   `json:"kiosk_close_button_swap_position"`
+	BrowserControls              bool   `json:"browser_controls"`
+	BrowserControlsPosition      string `json:"browser_controls_position"`
+	BrowserControlsSwapPosition  bool   `json:"browser_controls_swap_position"`
+	StartMaximized               bool   `json:"start_maximized"`
+	AppMode                      bool   `json:"app_mode"`
+	Webview                      bool   `json:"webview"`
+	Incognito                    bool   `json:"incognito"`
+	DisableContextMenu           bool   `json:"disable_context_menu"`
+	DisableDevTools              bool   `json:"disable_dev_tools"`
+	DisableTranslate             bool   `json:"disable_translate"`
+	DisablePinch                 bool   `json:"disable_pinch"`
+	DisableTouchAdjustment       bool   `json:"disable_touch_adjustment"`
+	KioskPrinting                bool   `json:"kiosk_printing"`
+	OverscrollHistoryNavigation  int    `json:"overscroll_history_navigation"`
+	PullToRefresh                int    `json:"pull_to_refresh"`
+	DisableFeatures              string `json:"disable_features"`
+	EdgeKioskType                string `json:"edge_kiosk_type"`
+	NoFirstRun                   bool   `json:"no_first_run"`
+	NoDefaultBrowserCheck        bool   `json:"no_default_browser_check"`
+	WebviewTitle                 string `json:"webview_title"`
 
 	// Network settings
 	Proxy            string `json:"proxy"`
@@ -143,35 +180,40 @@ type Config struct {
 // defaultConfig returns a Config populated with safe, sensible defaults.
 func defaultConfig() Config {
 	return Config{
-		TOTPStep:                    2,
-		Headless:                    false,
-		ViewportWidth:               1920,
-		ViewportHeight:              1080,
-		UserAgent:                   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-		Kiosk:                       false,
-		KioskCloseButtonLabel:       "Close",
-		StartMaximized:              false,
-		AppMode:                     true,
-		Webview:                     false,
-		Incognito:                   false,
-		DisableContextMenu:          true,
-		DisableDevTools:             true,
-		DisableTranslate:            true,
-		DisablePinch:                true,
-		DisableTouchAdjustment:      true,
-		KioskPrinting:               true,
-		OverscrollHistoryNavigation: 0,
-		PullToRefresh:               0,
-		DisableFeatures:             "DevTools",
-		EdgeKioskType:               "fullscreen",
-		NoFirstRun:                  true,
-		NoDefaultBrowserCheck:       true,
-		Timeout:                     60,
-		RetryCount:                  3,
-		RetryDelayMs:                1500,
-		LogLevel:                    "info",
-		LogFile:                     filepath.Join(os.TempDir(), "browser-automation.log"),
-		PollIntervalMs:              250,
+		TOTPStep:                     2,
+		Headless:                     false,
+		ViewportWidth:                1920,
+		ViewportHeight:               1080,
+		UserAgent:                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+		Kiosk:                        false,
+		KioskCloseButtonLabel:        "Close",
+		KioskCloseButtonPosition:     "top-right",
+		KioskCloseButtonSwapPosition: false,
+		BrowserControls:              false,
+		BrowserControlsPosition:      "top-left",
+		BrowserControlsSwapPosition:  false,
+		StartMaximized:               false,
+		AppMode:                      true,
+		Webview:                      false,
+		Incognito:                    false,
+		DisableContextMenu:           true,
+		DisableDevTools:              true,
+		DisableTranslate:             true,
+		DisablePinch:                 true,
+		DisableTouchAdjustment:       true,
+		KioskPrinting:                true,
+		OverscrollHistoryNavigation:  0,
+		PullToRefresh:                0,
+		DisableFeatures:              "DevTools",
+		EdgeKioskType:                "fullscreen",
+		NoFirstRun:                   true,
+		NoDefaultBrowserCheck:        true,
+		Timeout:                      60,
+		RetryCount:                   3,
+		RetryDelayMs:                 1500,
+		LogLevel:                     "info",
+		LogFile:                      filepath.Join(os.TempDir(), "browser-automation.log"),
+		PollIntervalMs:               250,
 	}
 }
 
@@ -191,6 +233,9 @@ func loadConfig(path string) (Config, error) {
 		}
 		return cfg, err
 	}
+	if err := validateConfigJSON(data); err != nil {
+		return cfg, err
+	}
 
 	// Unmarshal into a temporary map so we only override keys that are
 	// explicitly present in the file, leaving defaults intact for absent keys.
@@ -207,6 +252,90 @@ func loadConfig(path string) (Config, error) {
 	if err := json.Unmarshal(merged, &cfg); err != nil {
 		return cfg, err
 	}
+	if err := validateConfig(cfg); err != nil {
+		return cfg, err
+	}
 
 	return cfg, nil
+}
+
+// validateConfigJSON rejects misspelled/unsupported settings rather than
+// silently ignoring them during the default-layering step in loadConfig.
+func validateConfigJSON(data []byte) error {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	var cfg Config
+	if err := decoder.Decode(&cfg); err != nil {
+		return fmt.Errorf("invalid config: %w", err)
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		return errors.New("invalid config: multiple JSON values")
+	}
+	return nil
+}
+
+func validateConfig(cfg Config) error {
+	if err := validatePosition("kiosk_close_button_position", cfg.KioskCloseButtonPosition); err != nil {
+		return err
+	}
+	if err := validatePosition("browser_controls_position", cfg.BrowserControlsPosition); err != nil {
+		return err
+	}
+	if cfg.TOTPStep != 1 && cfg.TOTPStep != 2 {
+		return fmt.Errorf("totp_step must be 1 or 2")
+	}
+	if cfg.LogLevel != "debug" && cfg.LogLevel != "info" && cfg.LogLevel != "warn" && cfg.LogLevel != "error" {
+		return fmt.Errorf("log_level must be debug, info, warn, or error")
+	}
+	return validateDestinationTags(cfg.Destinations)
+}
+
+func validateDestinationTags(destinations []Destination) error {
+	seenTags := map[string]string{}
+	for destinationIndex, destination := range destinations {
+		if err := validateScopedConfig(fmt.Sprintf("destinations[%d]", destinationIndex), destination.TOTPStep, destination.KioskCloseButtonPosition, destination.BrowserControlsPosition); err != nil {
+			return err
+		}
+		if err := validateTag(seenTags, destination.Tag, fmt.Sprintf("destination %q", destination.Name)); err != nil {
+			return err
+		}
+		for urlIndex, target := range destination.URLs {
+			if err := validateScopedConfig(fmt.Sprintf("destinations[%d].urls[%d]", destinationIndex, urlIndex), target.TOTPStep, target.KioskCloseButtonPosition, target.BrowserControlsPosition); err != nil {
+				return err
+			}
+			if err := validateTag(seenTags, target.Tag, fmt.Sprintf("URL %q", target.Label)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func validateScopedConfig(name string, totpStep int, closePosition, controlsPosition string) error {
+	if totpStep != 0 && totpStep != 1 && totpStep != 2 {
+		return fmt.Errorf("%s.totp_step must be 1 or 2", name)
+	}
+	if err := validatePosition(name+".kiosk_close_button_position", closePosition); err != nil {
+		return err
+	}
+	return validatePosition(name+".browser_controls_position", controlsPosition)
+}
+
+func validatePosition(name, value string) error {
+	if value == "" || value == "top-left" || value == "top-right" || value == "bottom-left" || value == "bottom-right" {
+		return nil
+	}
+	return fmt.Errorf("%s must be top-left, top-right, bottom-left, or bottom-right", name)
+}
+
+func validateTag(seen map[string]string, tag, owner string) error {
+	tag = strings.ToLower(strings.TrimSpace(tag))
+	if tag == "" {
+		return nil
+	}
+	if previous, exists := seen[tag]; exists {
+		return fmt.Errorf("duplicate tag %q used by %s and %s", tag, previous, owner)
+	}
+	seen[tag] = owner
+	return nil
 }

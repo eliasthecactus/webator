@@ -94,3 +94,57 @@ func TestApplyDestinationMergesBrowserWindowOptions(t *testing.T) {
 		t.Fatal("expected URL app_mode=true to override category false")
 	}
 }
+
+func TestApplyDestinationMergesInjectedControls(t *testing.T) {
+	cfg := defaultConfig()
+	cfg.KioskCloseButtonPosition = "top-right"
+	parent := &Destination{
+		KioskCloseButtonPosition:     "bottom-left",
+		KioskCloseButtonSwapPosition: boolPtr(true),
+		BrowserControls:              boolPtr(true),
+		BrowserControlsPosition:      "bottom-right",
+		BrowserControlsSwapPosition:  boolPtr(true),
+	}
+	chosen := DestinationURL{
+		KioskCloseButtonPosition:    "top-left",
+		BrowserControlsPosition:     "top-right",
+		BrowserControlsSwapPosition: boolPtr(false),
+	}
+
+	applyDestination(&cfg, parent, chosen)
+
+	if cfg.KioskCloseButtonPosition != "top-left" || !cfg.KioskCloseButtonSwapPosition {
+		t.Fatalf("unexpected close control settings: position=%q swap=%t", cfg.KioskCloseButtonPosition, cfg.KioskCloseButtonSwapPosition)
+	}
+	if !cfg.BrowserControls || cfg.BrowserControlsPosition != "top-right" || cfg.BrowserControlsSwapPosition {
+		t.Fatalf("unexpected browser controls settings: enabled=%t position=%q swap=%t", cfg.BrowserControls, cfg.BrowserControlsPosition, cfg.BrowserControlsSwapPosition)
+	}
+}
+
+func TestApplyDestinationMergesBrowserSecuritySettings(t *testing.T) {
+	cfg := defaultConfig()
+	parent := &Destination{
+		DisableContextMenu:     boolPtr(false),
+		DisableDevTools:        boolPtr(false),
+		DisableTranslate:       boolPtr(false),
+		DisablePinch:           boolPtr(false),
+		DisableTouchAdjustment: boolPtr(false),
+		Incognito:              boolPtr(true),
+	}
+	chosen := DestinationURL{
+		DisableContextMenu: boolPtr(true),
+		DisableDevTools:    boolPtr(true),
+	}
+
+	applyDestination(&cfg, parent, chosen)
+
+	if !cfg.DisableContextMenu || !cfg.DisableDevTools {
+		t.Fatal("expected URL security overrides to win")
+	}
+	if cfg.DisableTranslate || cfg.DisablePinch || cfg.DisableTouchAdjustment {
+		t.Fatal("expected destination security overrides to apply")
+	}
+	if !cfg.Incognito {
+		t.Fatal("expected destination incognito override to apply")
+	}
+}
