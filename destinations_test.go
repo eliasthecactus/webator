@@ -148,3 +148,20 @@ func TestApplyDestinationMergesBrowserSecuritySettings(t *testing.T) {
 		t.Fatal("expected destination incognito override to apply")
 	}
 }
+
+func TestFilterDestinationsTagsAreCaseInsensitive(t *testing.T) {
+	destinations := []Destination{
+		{Name: "Production", Tag: "Production"},
+		{Name: "Apps", URLs: []DestinationURL{{Label: "Admin", Tag: "Admin"}, {Label: "User", Tag: "user"}}},
+	}
+
+	if got := filterDestinations(destinations, []string{"ALL"}); len(got) != len(destinations) {
+		t.Fatalf("expected all destinations, got %d", len(got))
+	}
+	if got := filterDestinations(destinations, []string{"production"}); len(got) != 1 || got[0].Name != "Production" {
+		t.Fatalf("expected Production, got %#v", got)
+	}
+	if got := filterDestinations(destinations, []string{"ADMIN"}); len(got) != 1 || len(got[0].URLs) != 1 || got[0].URLs[0].Label != "Admin" {
+		t.Fatalf("expected only Admin URL, got %#v", got)
+	}
+}
